@@ -65,10 +65,29 @@ app.post("/file", upload.single("file"), (req, res) => {
 app.get("/terminal", (req, res) => {
   const term = nodeEnvBind();
   let pid = term.pid.toString();
-  console.log("新增进程", pid);
+  console.log("\r\n新增进程", pid);
   res.send(pid);
   res.end();
 });
+app.get("/closeAll", (req, res) => {
+  termMap.forEach((term,pid)=>{
+    term.kill();
+    termMap.delete(pid);
+  })
+  console.log('清除所有终端')
+  res.end();
+});
+
+
+app.get("/close/:pid", (req, res) => {
+  const pid = parseInt(req.params.pid);
+  const term = termMap.get(pid);
+  term.kill();
+  termMap.delete(pid);
+  console.log('清除pid',pid)
+  res.end();
+});
+
 
 app.ws("/socket/:pid", (ws, req) => {
   const pid = parseInt(req.params.pid);
@@ -84,8 +103,6 @@ app.ws("/socket/:pid", (ws, req) => {
   });
   ws.on("close", () => {
     console.log(pid + "关闭连接");
-    term.kill();
-    termMap.delete(pid);
   });
 });
 
