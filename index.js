@@ -5,9 +5,9 @@ const os = require("os");
 const multer = require("multer");
 const path = require("path");
 
-let dest = path.resolve(__dirname,'../xiudongPupp/userData')
+let dest = path.resolve(__dirname, "../xiudongPupp/userData");
 const upload = multer({
-  storage:multer.diskStorage({
+  storage: multer.diskStorage({
     destination: function (req, file, cb) {
       cb(null, dest);
     },
@@ -20,7 +20,7 @@ const upload = multer({
       "utf8"
     );
     callback(null, true);
-    }
+  },
 });
 
 const app = express();
@@ -64,7 +64,9 @@ app.post("/file", upload.single("file"), (req, res) => {
 //服务端初始化
 app.get("/terminal", (req, res) => {
   const term = nodeEnvBind();
-  res.send(term.pid.toString());
+  let pid = term.pid.toString();
+  console.log("新增进程", pid);
+  res.send(pid);
   res.end();
 });
 
@@ -73,17 +75,15 @@ app.ws("/socket/:pid", (ws, req) => {
   const term = termMap.get(pid);
 
   term.on("data", (data) => {
-    console.log("onData");
     ws.send(data);
   });
 
   ws.on("message", (data) => {
-    console.log("onMessage");
-    console.log(typeof data === "string");
+    console.log("命令", data.trim());
     term.write(data);
   });
   ws.on("close", () => {
-    console.log("关闭连接");
+    console.log(pid + "关闭连接");
     term.kill();
     termMap.delete(pid);
   });
