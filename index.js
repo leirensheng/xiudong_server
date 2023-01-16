@@ -5,7 +5,7 @@ const os = require("os");
 const multer = require("multer");
 const path = require("path");
 
-let dest = path.resolve(__dirname, "../xiudongPupp/userData");
+let dest = path.resolve("../xiudongPupp/userData");
 const upload = multer({
   storage: multer.diskStorage({
     destination: function (req, file, cb) {
@@ -27,7 +27,7 @@ const app = express();
 expressWs(app);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join("./public")));
 
 const termMap = new Map();
 const logMap = new Map();
@@ -71,7 +71,7 @@ app.get("/terminal", (req, res) => {
 });
 app.get("/closeAll", (req, res) => {
   termMap.forEach((term,pid)=>{
-    term.kill();
+    term && term.kill();
     termMap.delete(pid);
   })
   console.log('清除所有终端')
@@ -82,8 +82,10 @@ app.get("/closeAll", (req, res) => {
 app.get("/close/:pid", (req, res) => {
   const pid = parseInt(req.params.pid);
   const term = termMap.get(pid);
-  term.kill();
-  termMap.delete(pid);
+  if(term){
+    term.kill();
+    termMap.delete(pid);
+  }
   console.log('清除pid',pid)
   res.end();
 });
