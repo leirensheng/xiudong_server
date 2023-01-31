@@ -91,7 +91,7 @@ app.get("/copyUserFile", async (req, res) => {
 
   await axios({
     method: "post",
-    url: host+":4000/uploadFile?name=" + name,
+    url: 'http://'+ host+":4000/uploadFile?name=" + name,
     headers: headers,
     data: formData,
   });
@@ -148,5 +148,5 @@ app.ws("/socket/:pid", (ws, req) => {
   });
 });
 
-app.listen(4000, "127.0.0.1");
+app.listen(4000, "0.0.0.0");
 console.log("server listening 4000");
