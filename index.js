@@ -1,11 +1,16 @@
+let AdmZip = require("adm-zip");
 const express = require("express");
 const expressWs = require("express-ws");
 const pty = require("node-pty");
 const os = require("os");
 const multer = require("multer");
 const path = require("path");
-
+const fs = require("fs");
+const axios = require("axios");
+const FormData = require("form-data");
 let dest = path.resolve("../xiudongPupp/userData");
+
+// let dest = path.resolve("./upload");
 const upload = multer({
   storage: multer.diskStorage({
     destination: function (req, file, cb) {
@@ -56,8 +61,41 @@ app.all("*", function (req, res, next) {
 });
 
 // 单文件上传接口
-app.post("/file", upload.single("file"), (req, res) => {
-  console.log(req.file);
+app.post("/uploadFile", upload.single("file"), (req, res) => {
+  console.log(req.query.name);
+  let filePath = path.resolve(dest, req.query.name + ".zip");
+  const admzip = new AdmZip(filePath);
+  admzip.extractAllTo(path.resolve(dest, req.query.name));
+  fs.unlinkSync(filePath);
+  res.send("ok");
+});
+app.get("/copyUserFile", async (req, res) => {
+  let name = req.query.name;
+  let host = req.query.host;
+
+  const file = new AdmZip();
+  const dest = path.resolve(
+    __dirname,
+    "../../../../xiudongPupp/userData/",
+    name
+  );
+  const zipPath = path.resolve(dest, name + ".zip");
+  file.addLocalFolder(dest);
+  file.writeZip(zipPath);
+
+  var localFile = fs.createReadStream(zipPath);
+  var formData = new FormData();
+  var headers = formData.getHeaders();
+
+  formData.append("file", localFile);
+
+  await axios({
+    method: "post",
+    url: host+":4000/uploadFile?name=" + name,
+    headers: headers,
+    data: formData,
+  });
+  fs.unlinkSync(zipPath);
   res.send("ok");
 });
 
@@ -70,26 +108,24 @@ app.get("/terminal", (req, res) => {
   res.end();
 });
 app.get("/closeAll", (req, res) => {
-  termMap.forEach((term,pid)=>{
+  termMap.forEach((term, pid) => {
     term && term.kill();
     termMap.delete(pid);
-  })
-  console.log('清除所有终端')
+  });
+  console.log("清除所有终端");
   res.end();
 });
-
 
 app.get("/close/:pid", (req, res) => {
   const pid = parseInt(req.params.pid);
   const term = termMap.get(pid);
-  if(term){
+  if (term) {
     term.kill();
     termMap.delete(pid);
   }
-  console.log('清除pid',pid)
+  console.log("清除pid", pid);
   res.end();
 });
-
 
 app.ws("/socket/:pid", (ws, req) => {
   const pid = parseInt(req.params.pid);
