@@ -89,14 +89,19 @@ app.get("/copyUserFile", async (req, res) => {
 
   formData.append("file", localFile);
 
-  await axios({
-    method: "post",
-    url: 'http://'+ host+":4000/uploadFile?name=" + name,
-    headers: headers,
-    data: formData,
-  });
+  try {
+    await axios({
+      method: "post",
+      url: "http://" + host + ":4000/uploadFile?name=" + name,
+      headers: headers,
+      data: formData,
+      timeout: 6000,
+    });
+    res.send("ok");
+  } catch (e) {
+    res.send(e.message);
+  }
   fs.unlinkSync(zipPath);
-  res.send("ok");
 });
 
 //服务端初始化
@@ -130,21 +135,21 @@ app.get("/close/:pid", (req, res) => {
 app.ws("/socket/:pid", (ws, req) => {
   const pid = parseInt(req.params.pid);
   const term = termMap.get(pid);
-  let hasClose = false
+  let hasClose = false;
   term.on("data", (data) => {
-    if(!hasClose){
-      console.log('发送信息')
+    if (!hasClose) {
+      console.log("发送信息");
       ws.send(data);
     }
   });
-  
+
   ws.on("message", (data) => {
     console.log("命令", data.trim());
     term.write(data);
   });
   ws.on("close", () => {
-    console.log(pid + "关闭连接",Object.keys(term));
-    hasClose = true
+    console.log(pid + "关闭连接", Object.keys(term));
+    hasClose = true;
   });
 });
 
