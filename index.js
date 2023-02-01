@@ -50,7 +50,7 @@ function readFile(name) {
 }
 function writeFile(name, data) {
   return new Promise((resolve, reject) => {
-    fs.writeFile(path.resolve('../xiudongPupp', name), data, e => {
+    fs.writeFile(path.resolve("../xiudongPupp", name), data, (e) => {
       if (e) {
         reject(e);
         return;
@@ -85,16 +85,17 @@ app.all("*", function (req, res, next) {
 
 // 单文件上传接口
 app.post("/uploadFile", upload.single("file"), async (req, res) => {
-  console.log(req.query.config);
-  let {name,config} = req.query
+  console.log();
+  let { name, config } = req.body;
 
-  let filePath = path.resolve(dest, req.query.name + ".zip");
+  let filePath = path.resolve(dest, name + ".zip");
   const admzip = new AdmZip(filePath);
-  admzip.extractAllTo(path.resolve(dest, req.query.name));
+  admzip.extractAllTo(path.resolve(dest, name));
   fs.unlinkSync(filePath);
   let obj = await readFile("config.json");
-  obj[name] = config
-  await writeFile('config.json',JSON.stringify(obj, null, 4))
+  obj = JSON.parse(obj);
+  obj[name] = JSON.parse(config);
+  await writeFile("config.json", JSON.stringify(obj, null, 4));
 
   res.send("ok");
 });
@@ -116,11 +117,13 @@ app.post("/copyUserFile", async (req, res) => {
   var headers = formData.getHeaders();
 
   formData.append("file", localFile);
+  formData.append("config", JSON.stringify(config));
+  formData.append("name", name);
 
   try {
     await axios({
       method: "post",
-      url: "http://" + host + ":4000/uploadFile?name=" + name+'&config='+JSON.stringify(config),
+      url: "http://" + host + ":4000/uploadFile",
       headers: headers,
       data: formData,
       timeout: 6000,
