@@ -37,6 +37,29 @@ app.use(express.static(path.join("./public")));
 const termMap = new Map();
 const logMap = new Map();
 
+function readFile(name) {
+  return new Promise((resolve, reject) => {
+    fs.readFile(path.resolve("../xiudongPupp", name), "utf-8", (e, res) => {
+      if (e) {
+        reject(e);
+        return;
+      }
+      resolve(res);
+    });
+  });
+}
+function writeFile(name, data) {
+  return new Promise((resolve, reject) => {
+    fs.writeFile(path.resolve('../xiudongPupp', name), data, e => {
+      if (e) {
+        reject(e);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
 function nodeEnvBind() {
   //绑定当前系统 node 环境
   const shell = os.platform() === "win32" ? "bash.exe" : "bash";
@@ -61,17 +84,22 @@ app.all("*", function (req, res, next) {
 });
 
 // 单文件上传接口
-app.post("/uploadFile", upload.single("file"), (req, res) => {
-  console.log(req.query.name);
+app.post("/uploadFile", upload.single("file"), async (req, res) => {
+  console.log(req.query.config);
+  let {name,config} = req.query
+
   let filePath = path.resolve(dest, req.query.name + ".zip");
   const admzip = new AdmZip(filePath);
   admzip.extractAllTo(path.resolve(dest, req.query.name));
   fs.unlinkSync(filePath);
+  let obj = await readFile("config.json");
+  obj[name] = config
+  await writeFile('config.json',JSON.stringify(obj, null, 4))
+
   res.send("ok");
 });
-app.get("/copyUserFile", async (req, res) => {
-  let name = req.query.name;
-  let host = req.query.host;
+app.post("/copyUserFile", async (req, res) => {
+  let { username: name, host, config } = req.body;
 
   const file = new AdmZip();
   const dest = path.resolve(
@@ -92,7 +120,7 @@ app.get("/copyUserFile", async (req, res) => {
   try {
     await axios({
       method: "post",
-      url: "http://" + host + ":4000/uploadFile?name=" + name,
+      url: "http://" + host + ":4000/uploadFile?name=" + name+'&config='+JSON.stringify(config),
       headers: headers,
       data: formData,
       timeout: 6000,
