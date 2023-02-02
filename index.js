@@ -10,6 +10,18 @@ const axios = require("axios");
 const FormData = require("form-data");
 let dest = path.resolve("../xiudongPupp/userData");
 
+let zipConfig = (username) => {
+  const file = new AdmZip();
+  const dest = path.resolve(
+    __dirname,
+    "../../../../xiudongPupp/userData/",
+    username
+  );
+  const zipPath = path.resolve(dest, username + ".zip");
+  file.addLocalFolder(dest);
+  file.writeZip(zipPath);
+  return zipPath;
+};
 // let dest = path.resolve("./upload");
 const upload = multer({
   storage: multer.diskStorage({
@@ -102,15 +114,7 @@ app.post("/uploadFile", upload.single("file"), async (req, res) => {
 app.post("/copyUserFile", async (req, res) => {
   let { username: name, host, config } = req.body;
 
-  const file = new AdmZip();
-  const dest = path.resolve(
-    __dirname,
-    "../../../../xiudongPupp/userData/",
-    name
-  );
-  const zipPath = path.resolve(dest, name + ".zip");
-  file.addLocalFolder(dest);
-  file.writeZip(zipPath);
+  let zipPath = zipConfig(username);
 
   var localFile = fs.createReadStream(zipPath);
   var formData = new FormData();
@@ -161,6 +165,25 @@ app.get("/close/:pid", (req, res) => {
   }
   console.log("清除pid", pid);
   res.end();
+});
+
+app.get("/getAllUserConfig", async (req, res) => {
+  let config = await readFile("config.json");
+  res.end(config);
+});
+
+app.get("/downloadConfig", async (req, res) => {
+  let { username } = req.query;
+  let zipPath = zipConfig(username);
+  var localFile = fs.createReadStream(zipPath);
+  let startTime = Date.now();
+  // res.writeHead(200, {
+  //   'Content-Type': 'application/octet-stream',    "Content-Disposition": "attachment; filename=" + username+'.zip',
+  // });
+  localFile.pipe(res);
+  localFile.on('end',()=>{
+    fs.unlinkSync(zipPath)
+  })
 });
 
 app.ws("/socket/:pid", (ws, req) => {
