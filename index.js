@@ -114,7 +114,7 @@ app.post("/uploadFile", upload.single("file"), async (req, res) => {
 app.post("/copyUserFile", async (req, res) => {
   let { username: name, host, config } = req.body;
 
-  let zipPath = zipConfig(username);
+  let zipPath = zipConfig(name);
 
   var localFile = fs.createReadStream(zipPath);
   var formData = new FormData();
