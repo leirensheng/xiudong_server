@@ -47,7 +47,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join("./public")));
 
 const termMap = new Map();
-const logMap = new Map();
+const pidToCmd = {};
 
 function readFile(name) {
   return new Promise((resolve, reject) => {
@@ -151,6 +151,7 @@ app.get("/closeAll", (req, res) => {
   termMap.forEach((term, pid) => {
     term && term.kill();
     termMap.delete(pid);
+    delete pidToCmd[pid];
   });
   console.log("清除所有终端");
   res.end();
@@ -162,6 +163,7 @@ app.get("/close/:pid", (req, res) => {
   if (term) {
     term.kill();
     termMap.delete(pid);
+    delete pidToCmd[pid];
   }
   console.log("清除pid", pid);
   res.end();
@@ -169,7 +171,9 @@ app.get("/close/:pid", (req, res) => {
 
 app.get("/getAllUserConfig", async (req, res) => {
   let config = await readFile("config.json");
-  res.end(config);
+   console.log(111,pidToCmd) 
+  let obj = { config: JSON.parse(config), pidToCmd };
+  res.json(obj);
 });
 
 app.get("/downloadConfig", async (req, res) => {
@@ -181,9 +185,9 @@ app.get("/downloadConfig", async (req, res) => {
   //   'Content-Type': 'application/octet-stream',    "Content-Disposition": "attachment; filename=" + username+'.zip',
   // });
   localFile.pipe(res);
-  localFile.on('end',()=>{
-    fs.unlinkSync(zipPath)
-  })
+  localFile.on("end", () => {
+    fs.unlinkSync(zipPath);
+  });
 });
 
 app.ws("/socket/:pid", (ws, req) => {
@@ -199,6 +203,7 @@ app.ws("/socket/:pid", (ws, req) => {
 
   ws.on("message", (data) => {
     console.log("命令", data.trim());
+    pidToCmd[pid] = data.trim();
     term.write(data);
   });
   ws.on("close", () => {
