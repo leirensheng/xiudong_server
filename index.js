@@ -74,13 +74,13 @@ function writeFile(name, data) {
 
 function nodeEnvBind() {
   //绑定当前系统 node 环境
-  const shell = os.platform() === "win32" ? "bash.exe" : "bash";
+  const shell = os.platform() === "win32" ? "powershell.exe" : "bash";
 
   const term = pty.spawn(shell, [], {
     name: "xterm-color",
     cols: 80,
     rows: 24,
-    cwd: process.env.HOME,
+    cwd: path.resolve(__dirname,'../xiudongPupp'),
     env: process.env,
   });
   termMap.set(term.pid, term);
@@ -161,7 +161,11 @@ app.get("/close/:pid", (req, res) => {
   const pid = parseInt(req.params.pid);
   const term = termMap.get(pid);
   if (term) {
-    term.kill();
+    try{
+      term.kill();
+    }catch(e){
+      console.log(e)
+    }
     termMap.delete(pid);
     delete pidToCmd[pid];
   }
