@@ -113,6 +113,7 @@ app.post("/uploadFile", upload.single("file"), async (req, res) => {
 });
 app.post("/copyUserFile", async (req, res) => {
   let { username: name, host, config } = req.body;
+  let {dnsIp} = await readFile("localConfig.json");
 
   let zipPath = zipConfig(name);
 
@@ -124,14 +125,27 @@ app.post("/copyUserFile", async (req, res) => {
   formData.append("config", JSON.stringify(config));
   formData.append("name", name);
 
-  try {
-    await axios({
+  let send = (ip)=>{
+    return axios({
       method: "post",
-      url: "http://" + host + ":4000/uploadFile",
+      url: "http://" + ip + ":4000/uploadFile",
       headers: headers,
       data: formData,
-      timeout: 6000,
+      timeout: 10000,
     });
+  }
+
+  try {
+    if(host.includes('leirensheng') && dnsIp){
+       try{
+         await send(dnsIp)
+       }catch(e){
+          console.log(e)
+         await send(host)
+       }
+    }else{
+      await send(host)
+    }
     res.send("ok");
   } catch (e) {
     res.send(e.message);
