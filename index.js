@@ -14,7 +14,7 @@ let zipConfig = (username) => {
   const file = new AdmZip();
   const dest = path.resolve(
     __dirname,
-    "../../../../xiudongPupp/userData/",
+    "../xiudongPupp/userData/",
     username
   );
   const zipPath = path.resolve(dest, username + ".zip");
