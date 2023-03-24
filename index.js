@@ -102,7 +102,7 @@ app.post("/uploadFile", upload.single("file"), async (req, res) => {
 
   let filePath = path.resolve(dest, name + ".zip");
   const admzip = new AdmZip(filePath);
-  admzip.extractAllTo(path.resolve(dest, name));
+  admzip.extractAllTo(path.resolve(dest, name), true);
   fs.unlinkSync(filePath);
   let obj = await readFile("config.json");
   obj = JSON.parse(obj);
