@@ -229,6 +229,8 @@ app.ws("/socket/:pid", (ws, req) => {
     hasClose = true;
   });
 });
-
+app.get("/ping", (req, res) => {
+  res.end(Date.now());
+});
 app.listen(4000, "0.0.0.0");
 console.log("server listening 4000");
