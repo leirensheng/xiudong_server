@@ -230,7 +230,7 @@ app.ws("/socket/:pid", (ws, req) => {
   });
 });
 app.get("/ping", (req, res) => {
-  res.end(Date.now());
+  res.end(Date.now().toString());
 });
 app.listen(4000, "0.0.0.0");
 console.log("server listening 4000");
