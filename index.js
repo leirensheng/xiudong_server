@@ -9,7 +9,7 @@ const fs = require("fs");
 const axios = require("axios");
 const FormData = require("form-data");
 let dest = path.resolve("../xiudongPupp/userData");
-
+const fsExtra = require('fs-extra')
 let zipConfig = (username) => {
   const file = new AdmZip();
   const dest = path.resolve(
@@ -21,6 +21,20 @@ let zipConfig = (username) => {
   file.addLocalFolder(dest);
   file.writeZip(zipPath);
   return zipPath;
+};
+
+let removeConfig = async (username) => {
+  let obj = await readFile("config.json");
+  obj = JSON.parse(obj);
+  delete obj[username]
+  await writeFile("config.json", JSON.stringify(obj, null, 4));
+  
+  const dest = path.resolve(
+    __dirname,
+    "../xiudongPupp/userData/",
+    username
+  );
+  fsExtra.removeSync(dest);
 };
 // let dest = path.resolve("./upload");
 const upload = multer({
@@ -198,7 +212,7 @@ app.get("/downloadConfig", async (req, res) => {
   let { username } = req.query;
   let zipPath = zipConfig(username);
   var localFile = fs.createReadStream(zipPath);
-  let startTime = Date.now();
+  await removeConfig()
   // res.writeHead(200, {
   //   'Content-Type': 'application/octet-stream',    "Content-Disposition": "attachment; filename=" + username+'.zip',
   // });
