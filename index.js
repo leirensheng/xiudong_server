@@ -145,7 +145,7 @@ app.post("/copyUserFile", async (req, res) => {
       url: "http://" + ip + ":4000/uploadFile",
       headers: headers,
       data: formData,
-      timeout: 10000,
+      timeout: 20000,
     });
   }
 
