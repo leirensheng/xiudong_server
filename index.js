@@ -212,13 +212,10 @@ app.get("/downloadConfig", async (req, res) => {
   let { username } = req.query;
   let zipPath = zipConfig(username);
   var localFile = fs.createReadStream(zipPath);
-  await removeConfig()
-  // res.writeHead(200, {
-  //   'Content-Type': 'application/octet-stream',    "Content-Disposition": "attachment; filename=" + username+'.zip',
-  // });
+
   localFile.pipe(res);
-  localFile.on("end", () => {
-    fs.unlinkSync(zipPath);
+  localFile.on("end", async () => {
+    await removeConfig(username)
   });
 });
 
