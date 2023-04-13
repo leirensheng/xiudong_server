@@ -9,14 +9,13 @@ const fs = require("fs");
 const axios = require("axios");
 const FormData = require("form-data");
 let dest = path.resolve("../xiudongPupp/userData");
-const fsExtra = require('fs-extra')
+const fsExtra = require("fs-extra");
+let cmd = require("./cmd");
+let getDynv6Ip = require('../xiudongPupp/getDynv6Ip');
+
 let zipConfig = (username) => {
   const file = new AdmZip();
-  const dest = path.resolve(
-    __dirname,
-    "../xiudongPupp/userData/",
-    username
-  );
+  const dest = path.resolve(__dirname, "../xiudongPupp/userData/", username);
   const zipPath = path.resolve(dest, username + ".zip");
   file.addLocalFolder(dest);
   file.writeZip(zipPath);
@@ -26,14 +25,10 @@ let zipConfig = (username) => {
 let removeConfig = async (username) => {
   let obj = await readFile("config.json");
   obj = JSON.parse(obj);
-  delete obj[username]
+  delete obj[username];
   await writeFile("config.json", JSON.stringify(obj, null, 4));
-  
-  const dest = path.resolve(
-    __dirname,
-    "../xiudongPupp/userData/",
-    username
-  );
+
+  const dest = path.resolve(__dirname, "../xiudongPupp/userData/", username);
   fsExtra.removeSync(dest);
 };
 // let dest = path.resolve("./upload");
@@ -94,7 +89,7 @@ function nodeEnvBind() {
     name: "xterm-color",
     cols: 80,
     rows: 24,
-    cwd: path.resolve(__dirname,'../xiudongPupp'),
+    cwd: path.resolve(__dirname, "../xiudongPupp"),
     env: process.env,
   });
   termMap.set(term.pid, term);
@@ -125,9 +120,30 @@ app.post("/uploadFile", upload.single("file"), async (req, res) => {
 
   res.send("ok");
 });
+app.post("/addInfo", async (req, res) => {
+  let { uid, phone, code, activityId } = req.body;
+  let cmdStr = `npm run add ${phone} ${activityId} ${phone} true ${code} ${uid}`;
+  try{
+    await cmd({
+      cmd: cmdStr,
+      successStr: "信息获取完成",
+      failStr: "自动输入验证码错误",
+      isSuccessStop: false,
+    });
+    res.json({
+      code:0
+    })
+  }catch(e){
+    res.json({
+      code: -1,
+      msg:'验证码错误,请重新输入'
+    });
+  }
+});
+
 app.post("/copyUserFile", async (req, res) => {
   let { username: name, host, config } = req.body;
-  let {dnsIp} = await readFile("localConfig.json");
+  let { dnsIp } = await readFile("localConfig.json");
 
   let zipPath = zipConfig(name);
 
@@ -139,7 +155,7 @@ app.post("/copyUserFile", async (req, res) => {
   formData.append("config", JSON.stringify(config));
   formData.append("name", name);
 
-  let send = (ip)=>{
+  let send = (ip) => {
     return axios({
       method: "post",
       url: "http://" + ip + ":4000/uploadFile",
@@ -147,18 +163,18 @@ app.post("/copyUserFile", async (req, res) => {
       data: formData,
       timeout: 20000,
     });
-  }
+  };
 
   try {
-    if(host.includes('leirensheng') && dnsIp){
-       try{
-         await send(dnsIp)
-       }catch(e){
-          console.log(e)
-         await send(host)
-       }
-    }else{
-      await send(host)
+    if (host.includes("leirensheng") && dnsIp) {
+      try {
+        await send(dnsIp);
+      } catch (e) {
+        console.log(e);
+        await send(host);
+      }
+    } else {
+      await send(host);
     }
     res.send("ok");
   } catch (e) {
@@ -189,10 +205,10 @@ app.get("/close/:pid", (req, res) => {
   const pid = parseInt(req.params.pid);
   const term = termMap.get(pid);
   if (term) {
-    try{
+    try {
       term.kill();
-    }catch(e){
-      console.log(e)
+    } catch (e) {
+      console.log(e);
     }
     termMap.delete(pid);
     delete pidToCmd[pid];
@@ -203,7 +219,7 @@ app.get("/close/:pid", (req, res) => {
 
 app.get("/getAllUserConfig", async (req, res) => {
   let config = await readFile("config.json");
-   console.log(111,pidToCmd) 
+  console.log(111, pidToCmd);
   let obj = { config: JSON.parse(config), pidToCmd };
   res.json(obj);
 });
@@ -215,7 +231,7 @@ app.get("/downloadConfig", async (req, res) => {
 
   localFile.pipe(res);
   localFile.on("end", async () => {
-    await removeConfig(username)
+    await removeConfig(username);
   });
 });
 
@@ -241,7 +257,19 @@ app.ws("/socket/:pid", (ws, req) => {
   });
 });
 app.get("/ping", (req, res) => {
-  res.end(Date.now().toString());
+  res.json({
+    msg:Date.now().toString(),
+    code: 0
+  });
+});
+
+
+app.get("/getDnsIp", async (req, res) => {
+  let ip = await getDynv6Ip()
+  res.json({
+    data: ip,
+    code: 0
+  });
 });
 app.listen(4000, "0.0.0.0");
 console.log("server listening 4000");
