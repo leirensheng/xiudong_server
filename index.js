@@ -166,7 +166,7 @@ app.post("/copyUserFile", async (req, res) => {
   };
 
   try {
-    if (host.includes("leirensheng") && dnsIp) {
+    if (host.includes("7l235k7324.yicp.fun") && dnsIp) {
       try {
         await send(dnsIp);
       } catch (e) {
