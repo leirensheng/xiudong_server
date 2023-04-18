@@ -11,7 +11,8 @@ const FormData = require("form-data");
 let dest = path.resolve("../xiudongPupp/userData");
 const fsExtra = require("fs-extra");
 let cmd = require("./cmd");
-let getDynv6Ip = require('../xiudongPupp/getDynv6Ip');
+let getDynv6Ip = require("../xiudongPupp/getDynv6Ip");
+let uidToWsMap = {};
 
 let zipConfig = (username) => {
   const file = new AdmZip();
@@ -123,7 +124,7 @@ app.post("/uploadFile", upload.single("file"), async (req, res) => {
 app.post("/addInfo", async (req, res) => {
   let { uid, phone, code, activityId } = req.body;
   let cmdStr = `npm run add ${phone} ${activityId} ${phone} true ${code} ${uid}`;
-  try{
+  try {
     await cmd({
       cmd: cmdStr,
       successStr: "信息获取完成",
@@ -131,12 +132,12 @@ app.post("/addInfo", async (req, res) => {
       isSuccessStop: false,
     });
     res.json({
-      code:0
-    })
-  }catch(e){
+      code: 0,
+    });
+  } catch (e) {
     res.json({
       code: -1,
-      msg:'验证码错误,请重新输入'
+      msg: "验证码错误,请重新输入",
     });
   }
 });
@@ -256,19 +257,46 @@ app.ws("/socket/:pid", (ws, req) => {
     hasClose = true;
   });
 });
-app.get("/ping", (req, res) => {
-  res.json({
-    msg:Date.now().toString(),
-    code: 0
+
+app.post("/sendMsgToApp/:uid", (req, res) => {
+  let uid = req.params.uid;
+  let ws = uidToWsMap[uid];
+  let { msg, phone } = req.body;
+  console.log(msg);
+  if (!ws) {
+    console.log(uid + "没有socket连接");
+    res.end();
+    return;
+  }
+  ws.send(JSON.stringify({ type: "ticketSuccess", msg, phone }));
+  res.end();
+});
+
+app.ws("/socket-app/:uid", (ws, req) => {
+  const uid = req.params.uid;
+  uidToWsMap[uid] = ws;
+  ws.on("message", (data) => {
+    console.log("收到信息", data.trim());
+  });
+  ws.on("close", () => {
+    console.log(uid + "关闭连接");
+    delete uidToWsMap[uid];
+    hasClose = true;
   });
 });
 
+app.get("/ping", (req, res) => {
+  res.json({
+    msg: Date.now().toString(),
+    code: 0,
+  });
+});
 
 app.get("/getDnsIp", async (req, res) => {
-  let ip = await getDynv6Ip()
+  let ip = await getDynv6Ip();
   res.json({
     data: ip,
-    code: 0
+    code: 0,
   });
 });
 app.listen(4000, "0.0.0.0");
