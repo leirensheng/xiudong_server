@@ -277,6 +277,11 @@ app.ws("/socket-app/:uid", (ws, req) => {
   uidToWsMap[uid] = ws;
   ws.on("message", (data) => {
     console.log("收到信息", data.trim());
+    if(data==='ping'){
+      ws.send(JSON.stringify({
+        type:'pong'
+      }))
+    }
   });
   ws.on("close", () => {
     console.log(uid + "关闭连接");
