@@ -10,9 +10,9 @@ const axios = require("axios");
 const FormData = require("form-data");
 let dest = path.resolve("../xiudongPupp/userData");
 const fsExtra = require("fs-extra");
-let cmd = require("./cmd");
+// let cmd = require("./cmd");
 let getDynv6Ip = require('../xiudongPupp/getDynv6Ip');
-
+let cmd = require('./cmd2')
 let zipConfig = (username) => {
   const file = new AdmZip();
   const dest = path.resolve(__dirname, "../xiudongPupp/userData/", username);
@@ -193,7 +193,9 @@ app.get("/terminal", (req, res) => {
 });
 app.get("/closeAll", (req, res) => {
   termMap.forEach((term, pid) => {
-    term && term.kill();
+    if(term){
+      cmd('taskkill /T /F /PID ' + term.pid)
+    }
     termMap.delete(pid);
     delete pidToCmd[pid];
   });
@@ -206,7 +208,8 @@ app.get("/close/:pid", (req, res) => {
   const term = termMap.get(pid);
   if (term) {
     try {
-      term.kill();
+      cmd('taskkill /T /F /PID ' + term.pid)
+      console.log('终止终端')
     } catch (e) {
       console.log(e);
     }
