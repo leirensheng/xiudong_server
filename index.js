@@ -10,14 +10,13 @@ const axios = require("axios");
 const FormData = require("form-data");
 let dest = path.resolve("../xiudongPupp/userData");
 const fsExtra = require("fs-extra");
-// let cmd = require("./cmd");
+let cmd = require("./cmd");
 let getDynv6Ip = require("../xiudongPupp/getDynv6Ip");
-let cmd = require("./cmd2");
+let cmd2 = require("./cmd2");
 let uidToWsMap = {};
 const { createServer } = require("http");
 const { Server } = require("socket.io");
-let localSocket 
-
+let localSocket;
 
 let zipConfig = (username) => {
   const file = new AdmZip();
@@ -129,13 +128,13 @@ app.post("/uploadFile", upload.single("file"), async (req, res) => {
   res.send("ok");
 });
 app.post("/addInfo", async (req, res) => {
-  let { uid, phone, code, activityId } = req.body;
-  let cmdStr = `npm run add ${phone} ${activityId} ${phone} true ${code} ${uid}`;
+  let { uid, phone, activityId, nickname } = req.body;
+  let cmdStr = `npm run add ${nickname} ${activityId} ${phone} true  ${uid}`;
   try {
     await cmd({
       cmd: cmdStr,
-      successStr: "信息获取完成",
-      failStr: "自动输入验证码错误",
+      successStr: "需要登",
+      failStr: "已经有了",
       isSuccessStop: false,
     });
     res.json({
@@ -144,7 +143,7 @@ app.post("/addInfo", async (req, res) => {
   } catch (e) {
     res.json({
       code: -1,
-      msg: "验证码错误,请重新输入",
+      msg: "nickname重复",
     });
   }
 });
@@ -202,7 +201,7 @@ app.get("/terminal", (req, res) => {
 app.get("/closeAll", (req, res) => {
   termMap.forEach((term, pid) => {
     if (term) {
-      cmd("taskkill /T /F /PID " + term.pid);
+      cmd2("taskkill /T /F /PID " + term.pid);
     }
     termMap.delete(pid);
     delete pidToCmd[pid];
@@ -214,13 +213,13 @@ app.get("/closeAll", (req, res) => {
 app.get("/close/:pid", (req, res) => {
   const pid = parseInt(req.params.pid);
   const term = termMap.get(pid);
-  let isFromRemote = req.query.isFromRemote
+  let isFromRemote = req.query.isFromRemote;
   if (term) {
     try {
-      cmd("taskkill /T /F /PID " + term.pid);
+      cmd2("taskkill /T /F /PID " + term.pid);
       console.log("终止终端");
-      if(isFromRemote){
-        localSocket.emit('closePid',pid)
+      if (isFromRemote) {
+        localSocket.emit("closePid", pid);
       }
     } catch (e) {
       console.log(e);
@@ -321,17 +320,25 @@ app.get("/getDnsIp", async (req, res) => {
   });
 });
 
-
-  const io = new Server(httpServer, {
-    cors: {
-      origin: "*",
-    },
+app.post("/startUserFromRemote", async (req, res) => {
+  localSocket.once("startUserDone", (isSuccess) => {
+    res.json({
+      code: isSuccess ? 0 : -1,
+    });
   });
+  localSocket.emit("startUser", req.body.cmd);
+});
 
-  io.on("connection", (socket) => {
-    console.log("已连接electron");
-   localSocket  = socket
-  });
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*",
+  },
+});
+
+io.on("connection", (socket) => {
+  console.log("已连接electron");
+  localSocket = socket;
+});
 
 httpServer.listen(4000, "0.0.0.0");
 console.log("server listening 4000");
