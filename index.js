@@ -11,9 +11,13 @@ const FormData = require("form-data");
 let dest = path.resolve("../xiudongPupp/userData");
 const fsExtra = require("fs-extra");
 // let cmd = require("./cmd");
-let getDynv6Ip = require('../xiudongPupp/getDynv6Ip');
-let cmd = require('./cmd2')
+let getDynv6Ip = require("../xiudongPupp/getDynv6Ip");
+let cmd = require("./cmd2");
 let uidToWsMap = {};
+const { createServer } = require("http");
+const { Server } = require("socket.io");
+let localSocket 
+
 
 let zipConfig = (username) => {
   const file = new AdmZip();
@@ -52,7 +56,9 @@ const upload = multer({
 });
 
 const app = express();
-expressWs(app);
+const httpServer = createServer(app);
+expressWs(app, httpServer);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join("./public")));
@@ -195,8 +201,8 @@ app.get("/terminal", (req, res) => {
 });
 app.get("/closeAll", (req, res) => {
   termMap.forEach((term, pid) => {
-    if(term){
-      cmd('taskkill /T /F /PID ' + term.pid)
+    if (term) {
+      cmd("taskkill /T /F /PID " + term.pid);
     }
     termMap.delete(pid);
     delete pidToCmd[pid];
@@ -208,10 +214,14 @@ app.get("/closeAll", (req, res) => {
 app.get("/close/:pid", (req, res) => {
   const pid = parseInt(req.params.pid);
   const term = termMap.get(pid);
+  let isFromRemote = req.query.isFromRemote
   if (term) {
     try {
-      cmd('taskkill /T /F /PID ' + term.pid)
-      console.log('终止终端')
+      cmd("taskkill /T /F /PID " + term.pid);
+      console.log("终止终端");
+      if(isFromRemote){
+        localSocket.emit('closePid',pid)
+      }
     } catch (e) {
       console.log(e);
     }
@@ -281,10 +291,12 @@ app.ws("/socket-app/:uid", (ws, req) => {
   uidToWsMap[uid] = ws;
   ws.on("message", (data) => {
     console.log("收到信息", data.trim());
-    if(data==='ping'){
-      ws.send(JSON.stringify({
-        type:'pong'
-      }))
+    if (data === "ping") {
+      ws.send(
+        JSON.stringify({
+          type: "pong",
+        })
+      );
     }
   });
   ws.on("close", () => {
@@ -308,5 +320,18 @@ app.get("/getDnsIp", async (req, res) => {
     code: 0,
   });
 });
-app.listen(4000, "0.0.0.0");
+
+
+  const io = new Server(httpServer, {
+    cors: {
+      origin: "*",
+    },
+  });
+
+  io.on("connection", (socket) => {
+    console.log("已连接electron");
+   localSocket  = socket
+  });
+
+httpServer.listen(4000, "0.0.0.0");
 console.log("server listening 4000");
