@@ -128,8 +128,8 @@ app.post("/uploadFile", upload.single("file"), async (req, res) => {
   res.send("ok");
 });
 app.post("/addInfo", async (req, res) => {
-  let { uid, phone, activityId, nickname } = req.body;
-  let cmdStr = `npm run add ${nickname} ${activityId} ${phone} true  ${uid}`;
+  let { uid, phone, activityId, username } = req.body;
+  let cmdStr = `npm run add ${username} ${activityId} ${phone} true  ${uid}`;
   try {
     await cmd({
       cmd: cmdStr,
