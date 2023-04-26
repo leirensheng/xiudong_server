@@ -27,14 +27,17 @@ let zipConfig = (username) => {
   return zipPath;
 };
 
-let removeConfig = async (username) => {
+let removeConfig = async (username, isNoRemove) => {
   let obj = await readFile("config.json");
   obj = JSON.parse(obj);
   delete obj[username];
   await writeFile("config.json", JSON.stringify(obj, null, 4));
 
-  const dest = path.resolve(__dirname, "../xiudongPupp/userData/", username);
-  fsExtra.removeSync(dest);
+  if(!isNoRemove){
+    const dest = path.resolve(__dirname, "../xiudongPupp/userData/", username);
+    fsExtra.removeSync(dest);
+  }
+
 };
 // let dest = path.resolve("./upload");
 const upload = multer({
@@ -327,6 +330,16 @@ app.post("/startUserFromRemote", async (req, res) => {
     });
   });
   localSocket.emit("startUser", req.body.cmd);
+});
+
+
+app.post("/removeConfig", async (req, res) => {
+  let {username } = req.body
+   await removeConfig(username,true)
+  localSocket.emit("getConfigList");
+  res.json({
+    code:0
+  })
 });
 
 const io = new Server(httpServer, {
