@@ -1,137 +1,83 @@
-let AdmZip = require("adm-zip");
-const express = require("express");
-const expressWs = require("express-ws");
-const pty = require("node-pty");
-const os = require("os");
-const multer = require("multer");
-const path = require("path");
+const Koa = require("koa");
+const Router = require("koa-router");
+
+const { koaBody } = require("koa-body");
 const fs = require("fs");
+const path = require("path");
 const axios = require("axios");
 const FormData = require("form-data");
-let dest = path.resolve("../xiudongPupp/userData");
-const fsExtra = require("fs-extra");
+
+const AdmZip = require("adm-zip");
 let cmd = require("./cmd");
-let getDynv6Ip = require("../xiudongPupp/getDynv6Ip");
 let cmd2 = require("./cmd2");
+const websocket = require("koa-easy-ws");
+const getDynv6Ip = require("../xiudongPupp/getDynv6Ip");
+const {
+  zipConfig,
+  removeConfig,
+  readFile,
+  writeFile,
+  nodeEnvBind,
+} = require("./utils");
+let dest = path.resolve("../xiudongPupp/userData");
+
+const app = new Koa();
+const router = new Router();
+app
+  .use(async (ctx, next) => {
+    await next();
+    let ignoreUrls = ["/downloadConfig"];
+    let noHandle = ignoreUrls.some((one) => ctx.request.url.includes(one));
+    if (noHandle) {
+      return;
+    }
+    let data = ctx.body;
+    if (!ctx.body || ctx.body.code === undefined) {
+      ctx.body = {
+        code: 0,
+        data,
+      };
+    } else {
+      ctx.body = data;
+    }
+  })
+  .use(async (ctx, next) => {
+    ctx.set("Access-Control-Allow-Origin", "*");
+    ctx.set("Access-Control-Allow-Headers", "Content-Type");
+    ctx.set("Access-Control-Allow-Methods", "*");
+    await next();
+  })
+  .use(websocket())
+  .use(
+    koaBody({
+      uploadDir: dest,
+      multipart: true,
+    })
+  )
+  .use(router.routes())
+  .use(router.allowedMethods());
+
 let uidToWsMap = {};
-const { createServer } = require("http");
-const { Server } = require("socket.io");
-let localSocket;
-
-let zipConfig = (username) => {
-  const file = new AdmZip();
-  const dest = path.resolve(__dirname, "../xiudongPupp/userData/", username);
-  const zipPath = path.resolve(dest, username + ".zip");
-  file.addLocalFolder(dest);
-  file.writeZip(zipPath);
-  return zipPath;
-};
-
-let removeConfig = async (username, isNoRemove) => {
-  let obj = await readFile("config.json");
-  obj = JSON.parse(obj);
-  delete obj[username];
-  await writeFile("config.json", JSON.stringify(obj, null, 4));
-
-  if(!isNoRemove){
-    const dest = path.resolve(__dirname, "../xiudongPupp/userData/", username);
-    fsExtra.removeSync(dest);
-  }
-
-};
-// let dest = path.resolve("./upload");
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: function (req, file, cb) {
-      cb(null, dest);
-    },
-    filename: function (req, file, cb) {
-      cb(null, decodeURI(file.originalname));
-    },
-  }),
-  fileFilter(req, file, callback) {
-    file.originalname = Buffer.from(file.originalname, "latin1").toString(
-      "utf8"
-    );
-    callback(null, true);
-  },
-});
-
-const app = express();
-const httpServer = createServer(app);
-expressWs(app, httpServer);
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(express.static(path.join("./public")));
-
 const termMap = new Map();
 const pidToCmd = {};
 
-function readFile(name) {
-  return new Promise((resolve, reject) => {
-    fs.readFile(path.resolve("../xiudongPupp", name), "utf-8", (e, res) => {
-      if (e) {
-        reject(e);
-        return;
-      }
-      resolve(res);
-    });
-  });
-}
-function writeFile(name, data) {
-  return new Promise((resolve, reject) => {
-    fs.writeFile(path.resolve("../xiudongPupp", name), data, (e) => {
-      if (e) {
-        reject(e);
-        return;
-      }
-      resolve();
-    });
-  });
-}
+router.post("/uploadFile", async (ctx, next) => {
+  const file = ctx.request.files.file;
+  const { name, config } = ctx.request.body;
 
-function nodeEnvBind() {
-  //绑定当前系统 node 环境
-  const shell = os.platform() === "win32" ? "powershell.exe" : "bash";
-
-  const term = pty.spawn(shell, [], {
-    name: "xterm-color",
-    cols: 80,
-    rows: 24,
-    cwd: path.resolve(__dirname, "../xiudongPupp"),
-    env: process.env,
-  });
-  termMap.set(term.pid, term);
-  return term;
-}
-
-//解决跨域问题
-app.all("*", function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Content-Type");
-  res.header("Access-Control-Allow-Methods", "*");
-  next();
-});
-
-// 单文件上传接口
-app.post("/uploadFile", upload.single("file"), async (req, res) => {
-  console.log();
-  let { name, config } = req.body;
-
-  let filePath = path.resolve(dest, name + ".zip");
-  const admzip = new AdmZip(filePath);
+  const admzip = new AdmZip(file.filepath);
   admzip.extractAllTo(path.resolve(dest, name), true);
-  fs.unlinkSync(filePath);
+  fs.unlinkSync(file.filepath);
   let obj = await readFile("config.json");
   obj = JSON.parse(obj);
   obj[name] = JSON.parse(config);
   await writeFile("config.json", JSON.stringify(obj, null, 4));
-
-  res.send("ok");
+  ctx.body = "ok";
 });
-app.post("/addInfo", async (req, res) => {
-  let { uid, phone, activityId, username } = req.body;
+
+router.post("/addInfo", async (ctx) => {
+  console.log(ctx.req.body, ctx.request.body);
+  let { uid, phone, activityId, username } = ctx.request.body;
   let cmdStr = `npm run add ${username} ${activityId} ${phone} true  ${uid}`;
   try {
     await cmd({
@@ -140,21 +86,21 @@ app.post("/addInfo", async (req, res) => {
       failStr: "已经有了",
       isSuccessStop: false,
     });
-    res.json({
+    ctx.body = {
       code: 0,
-    });
+    };
   } catch (e) {
-    res.json({
+    ctx.body = {
       code: -1,
       msg: "nickname重复",
-    });
+    };
   }
 });
 
-app.post("/copyUserFile", async (req, res) => {
-  let { username: name, host, config } = req.body;
+router.post("/copyUserFile", async (ctx) => {
+  let { username: name, host, config } = ctx.request.body;
   let { dnsIp } = await readFile("localConfig.json");
-
+  console.log(name);
   let zipPath = zipConfig(name);
 
   var localFile = fs.createReadStream(zipPath);
@@ -186,22 +132,27 @@ app.post("/copyUserFile", async (req, res) => {
     } else {
       await send(host);
     }
-    res.send("ok");
+    ctx.body = {
+      code: 0,
+    };
   } catch (e) {
-    res.send(e.message);
+    console.log(e);
+    ctx.body = {
+      code: -1,
+    };
   }
-  fs.unlinkSync(zipPath);
+  // fs.unlinkSync(zipPath);
 });
 
 //服务端初始化
-app.get("/terminal", (req, res) => {
-  const term = nodeEnvBind();
+router.get("/terminal", (ctx, next) => {
+  const term = nodeEnvBind(termMap);
   let pid = term.pid.toString();
   console.log("\r\n新增进程", pid);
-  res.send(pid);
-  res.end();
+  ctx.body = pid;
 });
-app.get("/closeAll", (req, res) => {
+
+router.get("/closeAll", (ctx, next) => {
   termMap.forEach((term, pid) => {
     if (term) {
       cmd2("taskkill /T /F /PID " + term.pid);
@@ -210,13 +161,13 @@ app.get("/closeAll", (req, res) => {
     delete pidToCmd[pid];
   });
   console.log("清除所有终端");
-  res.end();
+  ctx.body = "";
 });
 
-app.get("/close/:pid", (req, res) => {
-  const pid = parseInt(req.params.pid);
+router.get("/close/:pid", (ctx, next) => {
+  const pid = parseInt(ctx.params.pid);
   const term = termMap.get(pid);
-  let isFromRemote = req.query.isFromRemote;
+  let isFromRemote = ctx.query.isFromRemote;
   if (term) {
     try {
       cmd2("taskkill /T /F /PID " + term.pid);
@@ -231,127 +182,115 @@ app.get("/close/:pid", (req, res) => {
     delete pidToCmd[pid];
   }
   console.log("清除pid", pid);
-  res.end();
+  ctx.body = "";
 });
 
-app.get("/getAllUserConfig", async (req, res) => {
+router.get("/getAllUserConfig", async (ctx, next) => {
   let config = await readFile("config.json");
-  console.log(111, pidToCmd);
   let obj = { config: JSON.parse(config), pidToCmd };
-  res.json(obj);
+  ctx.body = obj;
 });
 
-app.get("/downloadConfig", async (req, res) => {
-  let { username } = req.query;
+router.get("/downloadConfig", async (ctx, next) => {
+  let { username } = ctx.query;
   let zipPath = zipConfig(username);
   var localFile = fs.createReadStream(zipPath);
-
-  localFile.pipe(res);
+  ctx.body = localFile;
   localFile.on("end", async () => {
     await removeConfig(username);
   });
 });
 
-app.ws("/socket/:pid", (ws, req) => {
-  const pid = parseInt(req.params.pid);
-  const term = termMap.get(pid);
-  let hasClose = false;
-  term.on("data", (data) => {
-    if (!hasClose) {
-      console.log("发送信息");
-      ws.send(data);
-    }
-  });
+router.get("/socket/:pid", async (ctx, next) => {
+  if (ctx.ws) {
+    const ws = await ctx.ws();
 
-  ws.on("message", (data) => {
-    console.log("命令", data.trim());
-    pidToCmd[pid] = data.trim();
-    term.write(data);
-  });
-  ws.on("close", () => {
-    console.log(pid + "关闭连接", Object.keys(term));
-    hasClose = true;
-  });
+    const pid = parseInt(ctx.request.params.pid);
+    const term = termMap.get(pid);
+    let hasClose = false;
+    term.on("data", (data) => {
+      if (!hasClose) {
+        console.log("发送信息");
+        ws.send(data);
+      }
+    });
+
+    ws.on("message", (data) => {
+      console.log("命令", data.toString());
+      pidToCmd[pid] = data.toString();
+      term.write(data.toString());
+    });
+    ws.on("close", () => {
+      console.log(pid + "关闭连接", Object.keys(term));
+      hasClose = true;
+    });
+  }
 });
 
-app.post("/sendMsgToApp/:uid", (req, res) => {
-  let uid = req.params.uid;
+router.post("/sendMsgToApp/:uid", (ctx, next) => {
+  let uid = ctx.params.uid;
   let ws = uidToWsMap[uid];
-  let { msg, phone } = req.body;
+  let { msg, phone } = ctx.request.body;
   console.log(msg);
   if (!ws) {
     console.log(uid + "没有socket连接");
-    res.end();
+    ctx.response.status = 200;
     return;
   }
   ws.send(JSON.stringify({ type: "ticketSuccess", msg, phone }));
-  res.end();
+  ctx.response.status = 200;
 });
 
-app.ws("/socket-app/:uid", (ws, req) => {
-  const uid = req.params.uid;
-  uidToWsMap[uid] = ws;
-  ws.on("message", (data) => {
+router.get("/socket-app/:uid", async (ctx, next) => {
+  const uid = ctx.request.params.uid;
+  uidToWsMap[uid] = ctx.websocket;
+  ctx.websocket.on("message", (data) => {
     console.log("收到信息", data.trim());
     if (data === "ping") {
-      ws.send(
+      ctx.websocket.send(
         JSON.stringify({
           type: "pong",
         })
       );
     }
   });
-  ws.on("close", () => {
+  ctx.websocket.on("close", () => {
     console.log(uid + "关闭连接");
     delete uidToWsMap[uid];
     hasClose = true;
   });
 });
 
-app.get("/ping", (req, res) => {
-  res.json({
-    msg: Date.now().toString(),
-    code: 0,
-  });
+router.get("/ping", (ctx, next) => {
+  ctx.body = Date.now().toString();
 });
 
-app.get("/getDnsIp", async (req, res) => {
-  let ip = await getDynv6Ip();
-  res.json({
-    data: ip,
-    code: 0,
-  });
+router.get("/getDnsIp", async (ctx, next) => {
+  ctx.body = await getDynv6Ip();
 });
 
-app.post("/startUserFromRemote", async (req, res) => {
+router.post("/startUserFromRemote", async (ctx, next) => {
   localSocket.once("startUserDone", (isSuccess) => {
-    res.json({
+    ctx.response.body = {
       code: isSuccess ? 0 : -1,
-    });
+    };
   });
-  localSocket.emit("startUser", req.body.cmd);
+  localSocket.emit("startUser", ctx.request.body.cmd);
 });
 
-
-app.post("/removeConfig", async (req, res) => {
-  let {username } = req.body
-   await removeConfig(username,true)
+router.post("/removeConfig", async (ctx, next) => {
+  let { username } = ctx.request.body;
+  await removeConfig(username, true);
   localSocket.emit("getConfigList");
-  res.json({
-    code:0
-  })
+  ctx.response.body = {
+    code: 0,
+  };
 });
 
-const io = new Server(httpServer, {
-  cors: {
-    origin: "*",
-  },
-});
+// io.on("connection", (socket) => {
+//   console.log("已连接electron");
+//   localSocket = socket;
+// });
 
-io.on("connection", (socket) => {
-  console.log("已连接electron");
-  localSocket = socket;
-});
-
-httpServer.listen(4000, "0.0.0.0");
+app.listen(4000, "0.0.0.0");
 console.log("server listening 4000");
