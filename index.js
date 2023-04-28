@@ -6,12 +6,13 @@ const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 const FormData = require("form-data");
-
+const eventEmitter = require('events')
 const AdmZip = require("adm-zip");
 let cmd = require("./cmd");
 let cmd2 = require("./cmd2");
 const websocket = require("koa-easy-ws");
 const getDynv6Ip = require("../xiudongPupp/getDynv6Ip");
+const  eventBus =new eventEmitter()
 const {
   zipConfig,
   removeConfig,
@@ -27,7 +28,8 @@ app
   .use(async (ctx, next) => {
     await next();
     let ignoreUrls = ["/downloadConfig"];
-    let noHandle = ignoreUrls.some((one) => ctx.request.url.includes(one));
+    let noHandle =
+      ignoreUrls.some((one) => ctx.request.url.includes(one)) || ctx.ws;
     if (noHandle) {
       return;
     }
@@ -173,7 +175,10 @@ router.get("/close/:pid", (ctx, next) => {
       cmd2("taskkill /T /F /PID " + term.pid);
       console.log("终止终端");
       if (isFromRemote) {
-        localSocket.emit("closePid", pid);
+        localSocket.send({
+          type:"closePid", 
+          pid
+        });
       }
     } catch (e) {
       console.log(e);
@@ -227,6 +232,29 @@ router.get("/socket/:pid", async (ctx, next) => {
   }
 });
 
+router.get("/electronSocket", async (ctx, next) => {
+  if (ctx.ws) {
+    localSocket = await ctx.ws();
+    localSocket.on("message", (data) => {
+      let {type,value} = JSON.parse(data);
+      eventBus.emit(type,value)
+      
+      if (data.type === "ping") {
+        localSocket.send(
+          JSON.stringify({
+            type: "pong",
+          })
+        );
+      }else if(data.type==='startUserDone'){
+      }
+    });
+    localSocket.on("close", () => {
+      console.log("electron关闭连接");
+      localSocket = null
+    });
+  }
+});
+
 router.post("/sendMsgToApp/:uid", (ctx, next) => {
   let uid = ctx.params.uid;
   let ws = uidToWsMap[uid];
@@ -242,23 +270,27 @@ router.post("/sendMsgToApp/:uid", (ctx, next) => {
 });
 
 router.get("/socket-app/:uid", async (ctx, next) => {
-  const uid = ctx.request.params.uid;
-  uidToWsMap[uid] = ctx.websocket;
-  ctx.websocket.on("message", (data) => {
-    console.log("收到信息", data.trim());
-    if (data === "ping") {
-      ctx.websocket.send(
-        JSON.stringify({
-          type: "pong",
-        })
-      );
-    }
-  });
-  ctx.websocket.on("close", () => {
-    console.log(uid + "关闭连接");
-    delete uidToWsMap[uid];
-    hasClose = true;
-  });
+  if(ctx.ws){
+    const uid = ctx.request.params.uid;
+    let ws = await ctx.ws();
+    uidToWsMap[uid] = ws
+    ws.on("message", (data) => {
+      console.log("收到信息", data.trim());
+      if (data === "ping") {
+        ws.send(
+          JSON.stringify({
+            type: "pong",
+          })
+        );
+      }
+    });
+    ws.on("close", () => {
+      console.log(uid + "关闭连接");
+      delete uidToWsMap[uid];
+      hasClose = true;
+    });
+
+  }
 });
 
 router.get("/ping", (ctx, next) => {
@@ -270,27 +302,22 @@ router.get("/getDnsIp", async (ctx, next) => {
 });
 
 router.post("/startUserFromRemote", async (ctx, next) => {
-  localSocket.once("startUserDone", (isSuccess) => {
+  eventBus.once("startUserDone", (isSuccess) => {
     ctx.response.body = {
       code: isSuccess ? 0 : -1,
     };
   });
-  localSocket.emit("startUser", ctx.request.body.cmd);
+  localSocket.send({type:"startUser",cmd: ctx.request.body.cmd});
 });
 
 router.post("/removeConfig", async (ctx, next) => {
   let { username } = ctx.request.body;
   await removeConfig(username, true);
-  localSocket.emit("getConfigList");
+  localSocket.send({type:"getConfigList"});
   ctx.response.body = {
     code: 0,
   };
 });
-
-// io.on("connection", (socket) => {
-//   console.log("已连接electron");
-//   localSocket = socket;
-// });
 
 app.listen(4000, "0.0.0.0");
 console.log("server listening 4000");
