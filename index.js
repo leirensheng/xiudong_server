@@ -237,9 +237,9 @@ router.get("/socket/:pid", async (ctx, next) => {
 router.get("/electronSocket", async (ctx, next) => {
   if (ctx.ws) {
     localSocket = await ctx.ws();
-    localSocket.on("message", (data) => {
+    localSocket.on("message", (str) => {
       try {
-        let { type, value } = JSON.parse(data);
+        let { type, data } = JSON.parse(str);
         if (type === "ping") {
           localSocket.send(
             JSON.stringify({
@@ -248,7 +248,7 @@ router.get("/electronSocket", async (ctx, next) => {
           );
         } else {
           console.log("eventBus发出", type);
-          eventBus.emit(type, value);
+          eventBus.emit(type, data);
         }
       } catch (e) {
         console.log("parse出错,", e);
@@ -329,10 +329,32 @@ router.post("/removeConfig", async (ctx, next) => {
   let { username } = ctx.request.body;
   await removeConfig(username, true);
   localSocket.send(JSON.stringify({ type: "getConfigList" }));
-  ctx.response.body = {
-    code: 0,
-  };
+  ctx.status = 200
 });
+
+router.post("/toCheck", async (ctx, next) => {
+  let { username } = ctx.request.body;
+  await cmd({
+    cmd: `npm run remove ${username}`,
+    successStr: "标记成功",
+    failStr: "已经有了",
+    isSuccessStop: true,
+  });
+  await removeConfig(username, true);
+  localSocket.send(JSON.stringify({ type: "getConfigList" }));
+  ctx.status = 200
+});
+
+
+router.post('/editConfig', async(ctx)=>{
+  const { username, config } = ctx.request.body;
+  let obj = await readFile("config.json");
+  obj = JSON.parse(obj);
+  let oldConfig = obj[username]
+  obj[username] = {...oldConfig, ...config};
+  await writeFile("config.json", JSON.stringify(obj, null, 4));
+  ctx.body = "ok";
+})
 
 app.listen(4000, "0.0.0.0");
 console.log("server listening 4000");
