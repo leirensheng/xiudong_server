@@ -238,14 +238,12 @@ router.get("/electronSocket", async (ctx, next) => {
     localSocket.on("message", (data) => {
       let {type,value} = JSON.parse(data);
       eventBus.emit(type,value)
-      
-      if (data.type === "ping") {
+      if (type === "ping") {
         localSocket.send(
           JSON.stringify({
             type: "pong",
           })
         );
-      }else if(data.type==='startUserDone'){
       }
     });
     localSocket.on("close", () => {
