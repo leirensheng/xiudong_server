@@ -6,13 +6,13 @@ const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 const FormData = require("form-data");
-const eventEmitter = require('events')
+const eventEmitter = require("events");
 const AdmZip = require("adm-zip");
 let cmd = require("./cmd");
 let cmd2 = require("./cmd2");
 const websocket = require("koa-easy-ws");
 const getDynv6Ip = require("../xiudongPupp/getDynv6Ip");
-const  eventBus =new eventEmitter()
+const eventBus = new eventEmitter();
 const {
   zipConfig,
   removeConfig,
@@ -27,7 +27,7 @@ const router = new Router();
 app
   .use(async (ctx, next) => {
     await next();
-    let ignoreUrls = ["/downloadConfig"];
+    let ignoreUrls = ["/downloadConfig", "/startUserFromRemote"];
     let noHandle =
       ignoreUrls.some((one) => ctx.request.url.includes(one)) || ctx.ws;
     if (noHandle) {
@@ -175,10 +175,12 @@ router.get("/close/:pid", (ctx, next) => {
       cmd2("taskkill /T /F /PID " + term.pid);
       console.log("终止终端");
       if (isFromRemote) {
-        localSocket.send({
-          type:"closePid", 
-          pid
-        });
+        localSocket.send(
+          JSON.stringify({
+            type: "closePid",
+            pid,
+          })
+        );
       }
     } catch (e) {
       console.log(e);
@@ -221,8 +223,8 @@ router.get("/socket/:pid", async (ctx, next) => {
     });
 
     ws.on("message", (data) => {
-      console.log("命令", data.toString());
-      pidToCmd[pid] = data.toString();
+      console.log("命令", data.toString().trim());
+      pidToCmd[pid] = data.toString().trim();
       term.write(data.toString());
     });
     ws.on("close", () => {
@@ -236,19 +238,25 @@ router.get("/electronSocket", async (ctx, next) => {
   if (ctx.ws) {
     localSocket = await ctx.ws();
     localSocket.on("message", (data) => {
-      let {type,value} = JSON.parse(data);
-      eventBus.emit(type,value)
-      if (type === "ping") {
-        localSocket.send(
-          JSON.stringify({
-            type: "pong",
-          })
-        );
+      try {
+        let { type, value } = JSON.parse(data);
+        if (type === "ping") {
+          localSocket.send(
+            JSON.stringify({
+              type: "pong",
+            })
+          );
+        } else {
+          console.log("eventBus发出", type);
+          eventBus.emit(type, value);
+        }
+      } catch (e) {
+        console.log("parse出错,", e);
       }
     });
     localSocket.on("close", () => {
       console.log("electron关闭连接");
-      localSocket = null
+      localSocket = null;
     });
   }
 });
@@ -268,18 +276,24 @@ router.post("/sendMsgToApp/:uid", (ctx, next) => {
 });
 
 router.get("/socket-app/:uid", async (ctx, next) => {
-  if(ctx.ws){
-    const uid = ctx.request.params.uid;
+  if (ctx.ws) {
     let ws = await ctx.ws();
-    uidToWsMap[uid] = ws
+    const uid = ctx.request.params.uid;
+    console.log(uid + "连接");
+    uidToWsMap[uid] = ws;
     ws.on("message", (data) => {
-      console.log("收到信息", data.trim());
-      if (data === "ping") {
-        ws.send(
-          JSON.stringify({
-            type: "pong",
-          })
-        );
+      console.log("收到信息", data.toString());
+      try {
+        let { type } = JSON.parse(data);
+        if (type === "ping") {
+          ws.send(
+            JSON.stringify({
+              type: "pong",
+            })
+          );
+        }
+      } catch (e) {
+        console.log(e, "parse 错误");
       }
     });
     ws.on("close", () => {
@@ -287,7 +301,6 @@ router.get("/socket-app/:uid", async (ctx, next) => {
       delete uidToWsMap[uid];
       hasClose = true;
     });
-
   }
 });
 
@@ -300,18 +313,22 @@ router.get("/getDnsIp", async (ctx, next) => {
 });
 
 router.post("/startUserFromRemote", async (ctx, next) => {
-  eventBus.once("startUserDone", (isSuccess) => {
-    ctx.response.body = {
-      code: isSuccess ? 0 : -1,
-    };
+  let promise = new Promise((r) => {
+    eventBus.once("startUserDone", r);
   });
-  localSocket.send({type:"startUser",cmd: ctx.request.body.cmd});
+  localSocket.send(
+    JSON.stringify({ type: "startUser", cmd: ctx.request.body.cmd })
+  );
+  let isSuccess = await promise;
+  ctx.response.body = {
+    code: isSuccess ? 0 : -1,
+  };
 });
 
 router.post("/removeConfig", async (ctx, next) => {
   let { username } = ctx.request.body;
   await removeConfig(username, true);
-  localSocket.send({type:"getConfigList"});
+  localSocket.send(JSON.stringify({ type: "getConfigList" }));
   ctx.response.body = {
     code: 0,
   };
