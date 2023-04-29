@@ -351,6 +351,9 @@ router.post('/editConfig', async(ctx)=>{
   let obj = await readFile("config.json");
   obj = JSON.parse(obj);
   let oldConfig = obj[username]
+  if(config.uid){
+    config.uid = config.uid.replace('尊敬的用户，你的UID是：','');
+  }
   obj[username] = {...oldConfig, ...config};
   await writeFile("config.json", JSON.stringify(obj, null, 4));
   ctx.body = "ok";
