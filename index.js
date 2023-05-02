@@ -80,7 +80,8 @@ router.post("/uploadFile", async (ctx, next) => {
 router.post("/addInfo", async (ctx) => {
   console.log(ctx.req.body, ctx.request.body);
   let { uid, phone, activityId, username } = ctx.request.body;
-  let cmdStr = `npm run add ${username} ${activityId} ${phone} true  ${uid}`;
+  let cmdStr =
+    `npm run add ${username} ${activityId} ${phone} true` + (uid || "");
   try {
     await cmd({
       cmd: cmdStr,
@@ -319,9 +320,10 @@ router.post("/startUserFromRemote", async (ctx, next) => {
   localSocket.send(
     JSON.stringify({ type: "startUser", cmd: ctx.request.body.cmd })
   );
-  let isSuccess = await promise;
+  let { isSuccess, msg } = await promise;
   ctx.response.body = {
     code: isSuccess ? 0 : -1,
+    msg,
   };
 });
 
@@ -329,7 +331,7 @@ router.post("/removeConfig", async (ctx, next) => {
   let { username } = ctx.request.body;
   await removeConfig(username, true);
   localSocket.send(JSON.stringify({ type: "getConfigList" }));
-  ctx.status = 200
+  ctx.status = 200;
 });
 
 router.post("/toCheck", async (ctx, next) => {
@@ -342,22 +344,21 @@ router.post("/toCheck", async (ctx, next) => {
   });
   await removeConfig(username, true);
   localSocket.send(JSON.stringify({ type: "getConfigList" }));
-  ctx.status = 200
+  ctx.status = 200;
 });
 
-
-router.post('/editConfig', async(ctx)=>{
+router.post("/editConfig", async (ctx) => {
   const { username, config } = ctx.request.body;
   let obj = await readFile("config.json");
   obj = JSON.parse(obj);
-  let oldConfig = obj[username]
-  if(config.uid){
-    config.uid = config.uid.replace('尊敬的用户，你的UID是：','');
+  let oldConfig = obj[username];
+  if (config.uid) {
+    config.uid = config.uid.replace("尊敬的用户，你的UID是：", "");
   }
-  obj[username] = {...oldConfig, ...config};
+  obj[username] = { ...oldConfig, ...config };
   await writeFile("config.json", JSON.stringify(obj, null, 4));
   ctx.body = "ok";
-})
+});
 
 app.listen(4000, "0.0.0.0");
 console.log("server listening 4000");
