@@ -85,9 +85,9 @@ router.post("/addInfo", async (ctx) => {
   try {
     await cmd({
       cmd: cmdStr,
-      successStr: "需要登",
+      successStr: "连接到服务器",
       failStr: "已经有了",
-      isSuccessStop: false,
+      isSuccessStop: true,
     });
     ctx.body = {
       code: 0,
