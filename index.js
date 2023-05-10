@@ -85,7 +85,7 @@ router.post("/addInfo", async (ctx) => {
   try {
     await cmd({
       cmd: cmdStr,
-      successStr: "连接到服务器",
+      successStr: "开始连接服务器",
       failStr: "已经有了",
       isSuccessStop: true,
     });
