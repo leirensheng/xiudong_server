@@ -81,11 +81,10 @@ router.post("/addInfo", async (ctx) => {
   console.log(ctx.req.body, ctx.request.body);
   let { uid, phone, activityId, username } = ctx.request.body;
   let cmdStr =
-    `npm run add ${username} ${activityId} ${phone} true` + (uid || "");
+    `npm run add ${username} ${activityId} ${phone}` + (uid || "");
   try {
     await cmd({
       cmd: cmdStr,
-      successStr: "开始连接服务器",
       failStr: "已经有了",
       isSuccessStop: true,
     });
