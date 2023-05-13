@@ -81,7 +81,7 @@ router.post("/addInfo", async (ctx) => {
   console.log(ctx.req.body, ctx.request.body);
   let { uid, phone, activityId, username } = ctx.request.body;
   let cmdStr =
-    `npm run add ${username} ${activityId} ${phone}` + (uid || "");
+    `npm run add ${username} ${activityId} ${phone} ` + (uid || "");
   try {
     await cmd({
       cmd: cmdStr,
