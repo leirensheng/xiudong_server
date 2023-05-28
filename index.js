@@ -79,9 +79,12 @@ router.post("/uploadFile", async (ctx, next) => {
 
 router.post("/addInfo", async (ctx) => {
   console.log(ctx.req.body, ctx.request.body);
-  let { uid, phone, activityId, username } = ctx.request.body;
+  let { uid, phone, activityId, username,remark,nameIndex,port,isCopy } = ctx.request.body;
+
+
   let cmdStr =
-    `npm run add ${username} ${activityId} ${phone} ` + (uid || "");
+    `npm run add ${username} ${isCopy} ${activityId}-${phone}-${uid}-${remark}-${nameIndex}-${port}` 
+
   try {
     await cmd({
       cmd: cmdStr,
@@ -91,6 +94,7 @@ router.post("/addInfo", async (ctx) => {
     ctx.body = {
       code: 0,
     };
+    localSocket.send(JSON.stringify({ type: "getConfigList" }));
   } catch (e) {
     ctx.body = {
       code: -1,
@@ -346,7 +350,7 @@ router.post("/toCheck", async (ctx, next) => {
 });
 
 router.post("/editConfig", async (ctx) => {
-  const { username, config } = ctx.request.body;
+  const { username, config,isRefresh } = ctx.request.body;
   let obj = await readFile("config.json");
   obj = JSON.parse(obj);
   let oldConfig = obj[username];
@@ -356,6 +360,16 @@ router.post("/editConfig", async (ctx) => {
     config.uid = config.uid.replace("尊敬的用户，你的UID是：", "");
   }
   obj[username] = { ...oldConfig, ...config };
+
+  if(isRefresh){
+    let arr = ['showTime','recordTime','cmd','typeMap','activityName'] 
+    arr.forEach(one=>{
+      delete obj[username][one]
+    })
+    obj[username].typeMap = {}
+  
+    obj[username].targetTypes = []
+  }
   await writeFile("config.json", JSON.stringify(obj, null, 4));
   ctx.body = "ok";
 });
