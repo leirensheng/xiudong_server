@@ -264,14 +264,13 @@ router.get("/electronSocket", async (ctx, next) => {
 router.post("/sendMsgToApp/:uid", (ctx, next) => {
   let uid = ctx.params.uid;
   let ws = uidToWsMap[uid];
-  let { msg, phone } = ctx.request.body;
-  console.log(msg);
+  let { msg, phone, type="ticketSuccess" } = ctx.request.body;
   if (!ws) {
     console.log(uid + "没有socket连接");
     ctx.response.status = 200;
     return;
   }
-  ws.send(JSON.stringify({ type: "ticketSuccess", msg, phone }));
+  ws.send(JSON.stringify({ type, msg, phone }));
   ctx.response.status = 200;
 });
 
