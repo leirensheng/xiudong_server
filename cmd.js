@@ -10,7 +10,7 @@ let execCmd = ({ cmd, successStr, failStr, isSuccessStop }) =>
       data += cur;
       if (data.includes(failStr)) {
         reject();
-      } else if (data.includes(successStr)) {
+      } else if (successStr && data.includes(successStr)) {
         resolve();
         if (isSuccessStop) {
           execCmd("taskkill /T /F /PID " + child.pid);
@@ -18,7 +18,7 @@ let execCmd = ({ cmd, successStr, failStr, isSuccessStop }) =>
       }
     });
     child.stdout.on("end", (cur) => {
-      resolve()
+      resolve();
     });
   });
 
