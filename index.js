@@ -79,11 +79,11 @@ router.post("/uploadFile", async (ctx, next) => {
 
 router.post("/addInfo", async (ctx) => {
   console.log(ctx.req.body, ctx.request.body);
-  let { uid, phone, activityId, username,remark,nameIndex,port,isCopy } = ctx.request.body;
+  let { uid, phone, activityId, username,remark,nameIndex,port,isCopy,targetTypes } = ctx.request.body;
 
 
   let cmdStr =
-    `npm run add ${username} ${isCopy} ${activityId}-${phone}-${uid}-${remark}-${nameIndex}-${port}` 
+    `npm run add ${username} ${isCopy} ${activityId}-${phone}-${uid}-${remark}-${nameIndex}-${port}-${targetTypes.join('_')}` 
 
   try {
     await cmd({
