@@ -1,9 +1,20 @@
 const pty = require("node-pty");
+const { WxPusher, Message } = require("wxpusher");
 const os = require("os");
 let AdmZip = require("adm-zip");
 const fsExtra = require("fs-extra");
 const path = require("path");
 const fs = require("fs");
+
+let sendMsgForCustomer = async (content, uid) => {
+  const message = new Message();
+  message.content = content;
+  message.uids = [uid];
+  const result = await new WxPusher("AT_s8ql37DbRNkrItpYhUK60xNNTeNE3ekp").send(
+    message
+  );
+  console.log(result);
+};
 
 let zipConfig = (username) => {
   const file = new AdmZip();
@@ -67,4 +78,5 @@ module.exports = {
   readFile,
   writeFile,
   nodeEnvBind,
+  sendMsgForCustomer
 };

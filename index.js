@@ -19,6 +19,7 @@ const {
   readFile,
   writeFile,
   nodeEnvBind,
+  sendMsgForCustomer,
 } = require("./utils");
 let dest = path.resolve("../xiudongPupp/userData");
 
@@ -79,11 +80,21 @@ router.post("/uploadFile", async (ctx, next) => {
 
 router.post("/addInfo", async (ctx) => {
   console.log(ctx.req.body, ctx.request.body);
-  let { uid, phone, activityId, username,remark,nameIndex,port,isCopy,targetTypes } = ctx.request.body;
+  let {
+    uid,
+    phone,
+    activityId,
+    username,
+    remark,
+    nameIndex,
+    port,
+    isCopy,
+    targetTypes,
+  } = ctx.request.body;
 
-
-  let cmdStr =
-    `npm run add ${username} ${isCopy} ${activityId}-${phone}-${uid}-${remark}-${nameIndex}-${port}-${targetTypes.join('_')}` 
+  let cmdStr = `npm run add ${username} ${isCopy} ${activityId}-${phone}-${uid}-${remark}-${nameIndex}-${port}-${targetTypes.join(
+    "_"
+  )}`;
 
   try {
     await cmd({
@@ -268,13 +279,19 @@ router.get("/electronSocket", async (ctx, next) => {
 router.post("/sendMsgToApp/:uid", (ctx, next) => {
   let uid = ctx.params.uid;
   let ws = uidToWsMap[uid];
-  let { msg, phone, type="ticketSuccess" } = ctx.request.body;
+  let { msg, phone, type = "ticketSuccess" } = ctx.request.body;
   if (!ws) {
     console.log(uid + "没有socket连接");
     ctx.response.status = 200;
     return;
   }
   ws.send(JSON.stringify({ type, msg, phone }));
+  ctx.response.status = 200;
+});
+
+router.post("/sendMsgToUser", async (ctx, next) => {
+  let { msg, uid } = ctx.request.body;
+  await sendMsgForCustomer(msg, uid);
   ctx.response.status = 200;
 });
 
@@ -350,7 +367,7 @@ router.post("/toCheck", async (ctx, next) => {
 });
 
 router.post("/editConfig", async (ctx) => {
-  const { username, config,isRefresh } = ctx.request.body;
+  const { username, config, isRefresh } = ctx.request.body;
   let obj = await readFile("config.json");
   obj = JSON.parse(obj);
   let oldConfig = obj[username];
@@ -361,14 +378,14 @@ router.post("/editConfig", async (ctx) => {
   }
   obj[username] = { ...oldConfig, ...config };
 
-  if(isRefresh){
-    let arr = ['showTime','recordTime','cmd','typeMap','activityName'] 
-    arr.forEach(one=>{
-      delete obj[username][one]
-    })
-    obj[username].typeMap = {}
-  
-    obj[username].targetTypes = []
+  if (isRefresh) {
+    let arr = ["showTime", "recordTime", "cmd", "typeMap", "activityName"];
+    arr.forEach((one) => {
+      delete obj[username][one];
+    });
+    obj[username].typeMap = {};
+
+    obj[username].targetTypes = [];
   }
   await writeFile("config.json", JSON.stringify(obj, null, 4));
   ctx.body = "ok";
