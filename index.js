@@ -139,7 +139,7 @@ router.post("/copyUserFile", async (ctx) => {
   };
 
   try {
-    if (host.includes("7l235k7324.yicp.fun") && dnsIp) {
+    if (host.includes("mticket.ddns.net") && dnsIp) {
       try {
         await send(dnsIp);
       } catch (e) {
@@ -364,6 +364,14 @@ router.post("/toCheck", async (ctx, next) => {
   await removeConfig(username, true);
   localSocket.send(JSON.stringify({ type: "getConfigList" }));
   ctx.status = 200;
+});
+
+router.get("/recover", async (ctx) => {
+  localSocket.send(JSON.stringify({ type: "recover" }));
+  let { failCmds } = await new Promise((resolve) => {
+    eventBus.once("recoverDone", resolve);
+  });
+  ctx.body = failCmds;
 });
 
 router.post("/editConfig", async (ctx) => {
