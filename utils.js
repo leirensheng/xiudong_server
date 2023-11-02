@@ -5,6 +5,7 @@ let AdmZip = require("adm-zip");
 const fsExtra = require("fs-extra");
 const path = require("path");
 const fs = require("fs");
+const axios = require("axios");
 
 let sendMsgForCustomer = async (content, uid) => {
   const message = new Message();
@@ -72,11 +73,56 @@ function nodeEnvBind(termMap) {
   termMap.set(term.pid, term);
   return term;
 }
+
+let waitUntilSuccess = (fn, times0 = 20, sleepTime = 5000) => {
+  return async function (...args) {
+    let times = times0;
+    while (times) {
+      try {
+        let res = await fn.call(this, ...args);
+        times = 0;
+        return res;
+      } catch (e) {
+        if(sleepTime){
+          await sleep(sleepTime);
+        }
+        times--;
+        console.log(e);
+        console.log("出错重试");
+      }
+    }
+    throw new Error("出错了");
+  };
+};
+
+let random = () =>
+  String(Math.floor(Math.random() * 10000000000000000000)).padStart(10, "0");
+
+
+let getDouyaIp = async(platform,usingIp)=>{
+  let getIp = async () => {
+    let { data } = await axios(
+      `https://api.douyadaili.com/proxy/?service=GetUnl&authkey=wLBiTQSHE5opEXokzDwZ&num=${1}&format=json&distinct=0&detail=1&portlen=4`
+    );
+    console.log(data)
+    let ip = data.data[0].ip + ":" + data.data[0].port;
+    if (usingIp[platform].includes(ip)) {
+      throw new Error("重复");
+    }
+    return ip;
+  };
+  let newFn = waitUntilSuccess(getIp, 555555, 0);
+  let realIp = await newFn();
+  return realIp
+}  
 module.exports = {
   zipConfig,
   removeConfig,
   readFile,
   writeFile,
   nodeEnvBind,
-  sendMsgForCustomer
+  sendMsgForCustomer,
+  waitUntilSuccess,
+  random,
+  getDouyaIp
 };

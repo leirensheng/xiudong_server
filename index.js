@@ -13,16 +13,28 @@ let cmd2 = require("./cmd2");
 const websocket = require("koa-easy-ws");
 const getDynv6Ip = require("../xiudongPupp/getDynv6Ip");
 const eventBus = new eventEmitter();
+const uniPush = require("./uniPush");
 const {
   zipConfig,
   removeConfig,
   readFile,
   writeFile,
   nodeEnvBind,
+  waitUntilSuccess,
   sendMsgForCustomer,
+  getDouyaIp,
 } = require("./utils");
+const { getTime } = require("../xiudongPupp/utils");
 let dest = path.resolve("../xiudongPupp/userData");
-
+let usingIp = {
+  damai: [],
+  xingqiu: [],
+};
+let notExpiredIp = {
+  damai: [],
+  xingqiu: [],
+};
+let msgList = [];
 const app = new Koa();
 const router = new Router();
 app
@@ -397,6 +409,63 @@ router.post("/editConfig", async (ctx) => {
   }
   await writeFile("config.json", JSON.stringify(obj, null, 4));
   ctx.body = "ok";
+});
+// 公共服务
+
+router.get("/getValidIp", async (ctx) => {
+  let platform = ctx.query.platform;
+  let ip;
+  let ips = notExpiredIp[platform];
+  if (ips.length) {
+    console.log("直接从之前的获取");
+    ip = ips.pop();
+  } else {
+    ip = await getDouyaIp(platform, usingIp);
+  }
+  ctx.body = ip;
+});
+
+router.get("/getProxyIp", async (ctx) => {
+  let platform = ctx.query.platform;
+  let realIp = await getDouyaIp(platform, usingIp);
+  usingIp[platform].push(realIp);
+  notExpiredIp[platform].push(realIp);
+
+  // 确保notExpiredIp至少有7s有效时间
+  setTimeout(() => {
+    let i = notExpiredIp[platform].indexOf(realIp);
+    if (i !== -1) {
+      notExpiredIp[platform].splice(i, 1);
+    }
+  }, 53000);
+  ctx.body = realIp;
+  // fs.writeFileSync("./usingIp.json", JSON.stringify(usingIp, null, 4));
+});
+
+router.post("/saveAppMsg", async (ctx, next) => {
+  let msg = ctx.request.body;
+  msgList.unshift(msg);
+  ctx.response.status = 200;
+});
+router.get("/getAllAppMsg", async (ctx, next) => {
+  ctx.body = msgList;
+});
+router.post("/removeAppMsg", async (ctx, next) => {
+  let { id } = ctx.request.body;
+  let i = msgList.findIndex((one) => one.id === id);
+  msgList.splice(i, 1);
+  ctx.status = 200;
+});
+
+router.get("/removeAllAppMsg", async (ctx, next) => {
+  msgList = [];
+  ctx.status = 200;
+});
+
+router.post("/sendAppMsg", async (ctx, next) => {
+  let { title, content, payload } = ctx.request.body;
+  await uniPush(title, content, payload);
+  ctx.status = 200;
 });
 
 app.listen(4000, "0.0.0.0");
