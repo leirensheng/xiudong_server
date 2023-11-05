@@ -6,6 +6,7 @@ const fsExtra = require("fs-extra");
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
+let sleep = (time) => new Promise((r) => setTimeout(r, time));
 
 let sendMsgForCustomer = async (content, uid) => {
   const message = new Message();
@@ -95,6 +96,21 @@ let waitUntilSuccess = (fn, times0 = 20, sleepTime = 5000) => {
   };
 };
 
+let formatNumber = (val) => (val < 10 ? "0" + val : val);
+let getTime = (date) => {
+  if (!date) {
+    date = new Date();
+  }
+  let hour = date.getHours();
+  let minute = date.getMinutes();
+  let second = date.getSeconds();
+  let millisecond = date.getMilliseconds();
+
+  return `${formatNumber(hour)}:${formatNumber(minute)}:${formatNumber(
+    second
+  )}.${millisecond}`;
+};
+
 let random = () =>
   String(Math.floor(Math.random() * 10000000000000000000)).padStart(10, "0");
 
@@ -111,7 +127,7 @@ let getDouyaIp = async(platform,usingIp)=>{
     }
     return ip;
   };
-  let newFn = waitUntilSuccess(getIp, 555555, 0);
+  let newFn = waitUntilSuccess(getIp, 5, 1000);
   let realIp = await newFn();
   return realIp
 }  
@@ -124,5 +140,6 @@ module.exports = {
   sendMsgForCustomer,
   waitUntilSuccess,
   random,
+  getTime,
   getDouyaIp
 };

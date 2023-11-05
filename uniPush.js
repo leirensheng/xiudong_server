@@ -5,6 +5,7 @@ let masterSecret = `nP2QpG1xuS9ZOwpQx274Q6`;
 let AppName = `uni.UNIB50DDBF`;
 let baseUrl = `https://restapi.getui.com/v2/${AppID}`;
 let axios = require("axios");
+let { getTime } = require("./utils");
 const crypto = require("crypto");
 let random = () =>
   String(Math.floor(Math.random() * 10000000000000000000)).padStart(10, "0");
@@ -53,7 +54,7 @@ class Main extends EventEmitter {
     }
 
     payload.id = random();
-    payload.msg = body;
+    payload.msg = `【${getTime()}】${body}`;
     body = body.slice(0, 26);
     body = body.slice(0, 18);
 

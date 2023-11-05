@@ -431,6 +431,8 @@ router.get("/getProxyIp", async (ctx) => {
   usingIp[platform].push(realIp);
   notExpiredIp[platform].push(realIp);
 
+  console.log("在用的ip" + platform, usingIp[platform].length);
+  console.count();
   // 确保notExpiredIp至少有7s有效时间
   setTimeout(() => {
     let i = notExpiredIp[platform].indexOf(realIp);
@@ -441,7 +443,15 @@ router.get("/getProxyIp", async (ctx) => {
   ctx.body = realIp;
   // fs.writeFileSync("./usingIp.json", JSON.stringify(usingIp, null, 4));
 });
-
+router.get("/removeIp", async (ctx, next) => {
+  let { ip, platform } = ctx.query;
+  let i = usingIp[platform].indexOf(ip);
+  usingIp[platform].splice(i, 1);
+  i = notExpiredIp[platform].indexOf(ip);
+  notExpiredIp[platform].splice(i, 1);
+  console.log(platform + "删除一个");
+  ctx.response.status = 200;
+});
 router.post("/saveAppMsg", async (ctx, next) => {
   let msg = ctx.request.body;
   msgList.unshift(msg);
