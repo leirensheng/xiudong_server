@@ -6,6 +6,7 @@ const fsExtra = require("fs-extra");
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
+let isDistinct = 1
 let sleep = (time) => new Promise((r) => setTimeout(r, time));
 
 let sendMsgForCustomer = async (content, uid) => {
@@ -118,9 +119,12 @@ let random = () =>
 let getDouyaIp = async(platform,usingIp)=>{
   let getIp = async () => {
     let { data } = await axios(
-      `https://api.douyadaili.com/proxy/?service=GetUnl&authkey=wLBiTQSHE5opEXokzDwZ&num=${1}&format=json&distinct=0&detail=1&portlen=4`
+      `https://api.douyadaili.com/proxy/?service=GetUnl&authkey=wLBiTQSHE5opEXokzDwZ&num=${1}&format=json&distinct=${isDistinct}&detail=1&portlen=4`
     );
     console.log(data)
+    if(data.msg.includes('资源不足')){
+      isDistinct = 0
+    }
     let ip = data.data[0].ip + ":" + data.data[0].port;
     if (usingIp[platform].includes(ip)) {
       throw new Error("重复");
