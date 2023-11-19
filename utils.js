@@ -6,7 +6,7 @@ const fsExtra = require("fs-extra");
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
-let isDistinct = 1
+let isDistinct = 1;
 let sleep = (time) => new Promise((r) => setTimeout(r, time));
 
 let sendMsgForCustomer = async (content, uid) => {
@@ -85,7 +85,7 @@ let waitUntilSuccess = (fn, times0 = 20, sleepTime = 5000) => {
         times = 0;
         return res;
       } catch (e) {
-        if(sleepTime){
+        if (sleepTime) {
           await sleep(sleepTime);
         }
         times--;
@@ -98,7 +98,7 @@ let waitUntilSuccess = (fn, times0 = 20, sleepTime = 5000) => {
 };
 
 let formatNumber = (val) => (val < 10 ? "0" + val : val);
-let getTime = (date) => {
+let getTime = (date, isNoMillisecond) => {
   if (!date) {
     date = new Date();
   }
@@ -109,23 +109,23 @@ let getTime = (date) => {
 
   return `${formatNumber(hour)}:${formatNumber(minute)}:${formatNumber(
     second
-  )}.${millisecond}`;
+  )}${isNoMillisecond ? "" : "." + millisecond}`;
 };
 
 let random = () =>
   String(Math.floor(Math.random() * 10000000000000000000)).padStart(10, "0");
 
-
-let getDouyaIp = async(platform,usingIp)=>{
+let getDouyaIp = async (platform, usingIp) => {
   let getIp = async () => {
     let { data } = await axios(
       `https://api.douyadaili.com/proxy/?service=GetUnl&authkey=wLBiTQSHE5opEXokzDwZ&num=${1}&format=json&distinct=${isDistinct}&detail=1&portlen=4`
     );
-    console.log(data)
-    if(data.msg.includes('资源不足')){
-      isDistinct = 0
+    // console.log(data)
+    if (data.msg.match(/今日最大|资源不足/)) {
+      isDistinct = 0;
     }
     let ip = data.data[0].ip + ":" + data.data[0].port;
+    console.log("platform", platform);
     if (usingIp[platform].includes(ip)) {
       throw new Error("重复");
     }
@@ -133,8 +133,8 @@ let getDouyaIp = async(platform,usingIp)=>{
   };
   let newFn = waitUntilSuccess(getIp, 5, 1000);
   let realIp = await newFn();
-  return realIp
-}  
+  return realIp;
+};
 module.exports = {
   zipConfig,
   removeConfig,
@@ -145,5 +145,5 @@ module.exports = {
   waitUntilSuccess,
   random,
   getTime,
-  getDouyaIp
+  getDouyaIp,
 };

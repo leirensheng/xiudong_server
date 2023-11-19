@@ -26,6 +26,7 @@ const {
 } = require("./utils");
 const { getTime } = require("../xiudongPupp/utils");
 let dest = path.resolve("../xiudongPupp/userData");
+const agentMap = require("./agentMap.js");
 let usingIp = {
   damai: [],
   xingqiu: [],
@@ -414,13 +415,14 @@ router.post("/editConfig", async (ctx) => {
 
 router.get("/getValidIp", async (ctx) => {
   let platform = ctx.query.platform;
+  let customerPlatform = ctx.query.customerPlatform
   let ip;
   let ips = notExpiredIp[platform];
   if (ips.length) {
     console.log("直接从之前的获取");
     ip = ips.pop();
   } else {
-    ip = await getDouyaIp(platform, usingIp);
+    ip = await getDouyaIp(customerPlatform, usingIp);
   }
   ctx.body = ip;
 });
@@ -477,6 +479,11 @@ router.post("/sendAppMsg", async (ctx, next) => {
   await uniPush(title, content, payload);
   ctx.status = 200;
 });
+
+router.get("/getAgentMap", async (ctx) => {
+  ctx.body = agentMap;
+});
+
 
 app.listen(4000, "0.0.0.0");
 console.log("server listening 4000");

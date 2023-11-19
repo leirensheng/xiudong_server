@@ -54,10 +54,10 @@ class Main extends EventEmitter {
     }
 
     payload.id = random();
-    payload.msg = `【${getTime()}】${body}`;
+    payload.msg = `【${getTime('',true)}】${body}`;
     body = body.slice(0, 26);
     body = body.slice(0, 18);
-
+    title = title.slice(0,49)
     let transmission = {
       // a:555
       // title,
