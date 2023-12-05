@@ -76,6 +76,29 @@ function nodeEnvBind(termMap) {
   return term;
 }
 
+let sendAppMsg = async (title, content, payload) => {
+  try {
+    await axios({
+      method: "post",
+      data: { title, content, payload },
+      url: `http://localhost:4000/sendAppMsg`,
+    });
+  } catch (e) {
+    sendMsg("推送失败" + e.message);
+    console.log(e);
+  }
+};
+
+let startDamaiUser = async(user)=>{
+  await axios({
+    method: "post",
+    data: { 
+        cmd:'npm run start '+user
+     },
+    url: `http://localhost:5000/startUserFromRemote`,
+  });
+}
+
 let waitUntilSuccess = (fn, times0 = 20, sleepTime = 5000) => {
   return async function (...args) {
     let times = times0;
@@ -135,6 +158,9 @@ let getDouyaIp = async (platform, usingIp) => {
   let realIp = await newFn();
   return realIp;
 };
+ 
+let randomVal = (min, max) => Math.floor(Math.random() * (max - min)) + min;
+
 module.exports = {
   zipConfig,
   removeConfig,
@@ -144,6 +170,10 @@ module.exports = {
   sendMsgForCustomer,
   waitUntilSuccess,
   random,
+  randomVal,
   getTime,
+  sleep,
+  sendAppMsg,
   getDouyaIp,
+  startDamaiUser
 };

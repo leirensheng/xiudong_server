@@ -14,7 +14,11 @@ const websocket = require("koa-easy-ws");
 const getDynv6Ip = require("../xiudongPupp/getDynv6Ip");
 const eventBus = new eventEmitter();
 const uniPush = require("./uniPush");
+const slide = require("./slide.js");
+const slideLogin = require("./slideLogin.js");
+
 const {
+  sleep,
   zipConfig,
   removeConfig,
   readFile,
@@ -23,10 +27,12 @@ const {
   waitUntilSuccess,
   sendMsgForCustomer,
   getDouyaIp,
+  startDamaiUser,
 } = require("./utils");
 const { getTime } = require("../xiudongPupp/utils");
 let dest = path.resolve("../xiudongPupp/userData");
 const agentMap = require("./agentMap.js");
+
 let usingIp = {
   damai: [],
   xingqiu: [],
@@ -38,6 +44,14 @@ let notExpiredIp = {
 let msgList = [];
 const app = new Koa();
 const router = new Router();
+let isSliding = false;
+let waitUntilOk = async () => {
+  if (isSliding) {
+    await sleep(500);
+    return waitUntilOk();
+  }
+};
+
 app
   .use(async (ctx, next) => {
     await next();
@@ -415,7 +429,7 @@ router.post("/editConfig", async (ctx) => {
 
 router.get("/getValidIp", async (ctx) => {
   let platform = ctx.query.platform;
-  let customerPlatform = ctx.query.customerPlatform
+  let customerPlatform = ctx.query.customerPlatform;
   let ip;
   let ips = notExpiredIp[platform];
   if (ips.length) {
@@ -484,6 +498,54 @@ router.get("/getAgentMap", async (ctx) => {
   ctx.body = agentMap;
 });
 
+router.get("/getIsSlideRunning", async (ctx) => {
+  ctx.body = isSliding;
+});
+
+router.post("/setIsSlideRunning", async (ctx) => {
+  isSliding = ctx.request.body.isSliding;
+  ctx.status = 200;
+});
+
+router.get("/slide/:user", async (ctx) => {
+  if (isSliding) {
+    await waitUntilOk();
+  }
+  ctx.status = 200;
+  setTimeout(async () => {
+    isSliding = true;
+
+    let user = ctx.params.user;
+    let { url } = ctx.query;
+    console.log("用户", user, url);
+
+    try {
+      await slide({ user, url });
+      await startDamaiUser(user);
+    } catch (e) {
+      console.log(e);
+    }
+    isSliding = false;
+  }, 0);
+});
+
+router.post("/slideLogin", async (ctx) => {
+  console.log("收到slide请求", ctx.request.body);
+  if (isSliding) {
+    await waitUntilOk();
+  }
+  ctx.status = 200;
+  setTimeout(async () => {
+    isSliding = true;
+
+    try {
+      await slideLogin(ctx.request.body);
+    } catch (e) {
+      console.log(e);
+    }
+    isSliding = false;
+  }, 0);
+});
 
 app.listen(4000, "0.0.0.0");
 console.log("server listening 4000");
