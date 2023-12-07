@@ -27,6 +27,7 @@
     "node-pty": "^0.10.1",
     "pkg": "^5.8.0",
     "puppeteer-core": "^21.5.2",
+    "puppeteer-interceptor": "^2.2.0",
     "shelljs": "^0.8.5",
     "socket.io": "^4.6.1",
     "wxpusher": "^2.0.0"

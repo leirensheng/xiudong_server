@@ -46,8 +46,8 @@ let slide = async ({ user, url }) => {
         type: "error",
       });
       stopExe();
-      await browser.close();
       reject();
+      await browser.close();
     }, 15000);
 
     sendAppMsg("提醒", user + "需要滑动验证", { type: "info" });

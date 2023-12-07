@@ -89,15 +89,15 @@ let sendAppMsg = async (title, content, payload) => {
   }
 };
 
-let startDamaiUser = async(user)=>{
+let startDamaiUser = async (user) => {
   await axios({
     method: "post",
-    data: { 
-        cmd:'npm run start '+user
-     },
+    data: {
+      cmd: "npm run start " + user,
+    },
     url: `http://localhost:5000/startUserFromRemote`,
   });
-}
+};
 
 let waitUntilSuccess = (fn, times0 = 20, sleepTime = 5000) => {
   return async function (...args) {
@@ -138,6 +138,11 @@ let getTime = (date, isNoMillisecond) => {
 let random = () =>
   String(Math.floor(Math.random() * 10000000000000000000)).padStart(10, "0");
 
+let myClick = async (page, selector, timeout = 6000) => {
+  await page.waitForSelector(selector, { timeout });
+  await page.$eval(selector, (dom) => dom.click());
+};
+
 let getDouyaIp = async (platform, usingIp) => {
   let getIp = async () => {
     let { data } = await axios(
@@ -148,7 +153,7 @@ let getDouyaIp = async (platform, usingIp) => {
       isDistinct = 0;
     }
     let ip = data.data[0].ip + ":" + data.data[0].port;
-    console.log("platform", platform);
+    // console.log("platform", platform);
     if (usingIp[platform].includes(ip)) {
       throw new Error("重复");
     }
@@ -158,7 +163,7 @@ let getDouyaIp = async (platform, usingIp) => {
   let realIp = await newFn();
   return realIp;
 };
- 
+
 let randomVal = (min, max) => Math.floor(Math.random() * (max - min)) + min;
 
 module.exports = {
@@ -175,5 +180,7 @@ module.exports = {
   sleep,
   sendAppMsg,
   getDouyaIp,
-  startDamaiUser
+  sleep,
+  startDamaiUser,
+  myClick
 };

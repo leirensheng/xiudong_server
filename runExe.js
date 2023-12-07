@@ -10,7 +10,7 @@ function runExe(pid, exeName, title) {
     cwd: __dirname, // 设置exe工作路径
   };
 
-  return new Promise((r) => {
+  return new Promise((r, reject) => {
     childProcess = spawn(exePath, args, options);
     // 监听子进程的输出
     childProcess.stdout.on("data", (data) => {
@@ -24,7 +24,11 @@ function runExe(pid, exeName, title) {
     // 监听子进程的退出
     childProcess.on("close", (code) => {
       console.log(`子进程退出，退出码 ${code}`);
-      r("ok");
+      if (code === 0) {
+        r("ok");
+      } else {
+        reject();
+      }
     });
   });
 }

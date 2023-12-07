@@ -16,6 +16,7 @@ const eventBus = new eventEmitter();
 const uniPush = require("./uniPush");
 const slide = require("./slide.js");
 const slideLogin = require("./slideLogin.js");
+let getMobileActivityInfo = require("./getMobileActivityInfo");
 
 const {
   sleep,
@@ -45,10 +46,30 @@ let msgList = [];
 const app = new Koa();
 const router = new Router();
 let isSliding = false;
+
+let setIsSlideRunning = (val) => {
+  if(val){
+    isSliding = val;
+  }else{
+    setSlidingFalse()
+  }
+};
+let getIsSlideRunning = () => isSliding;
+
+let setSlidingFalse = () => {
+  isSliding = false;
+  eventBus.emit("slidingFalse");
+};
+
 let waitUntilOk = async () => {
   if (isSliding) {
-    await sleep(500);
-    return waitUntilOk();
+    await new Promise((r) => {
+      eventBus.once("slidingFalse", r);
+    });
+    await sleep(0);
+    if (isSliding) {
+      return waitUntilOk();
+    }
   }
 };
 
@@ -465,7 +486,7 @@ router.get("/removeIp", async (ctx, next) => {
   usingIp[platform].splice(i, 1);
   i = notExpiredIp[platform].indexOf(ip);
   notExpiredIp[platform].splice(i, 1);
-  console.log(platform + "删除一个");
+  // console.log(platform + "删除一个");
   ctx.response.status = 200;
 });
 router.post("/saveAppMsg", async (ctx, next) => {
@@ -507,6 +528,20 @@ router.post("/setIsSlideRunning", async (ctx) => {
   ctx.status = 200;
 });
 
+
+router.get("/getMobileActivityInfo", async (ctx) => {
+  let { activityId, dataId } = ctx.query;
+  let res = await getMobileActivityInfo(
+    activityId,
+    dataId,
+    eventBus,
+    setIsSlideRunning,
+    getIsSlideRunning,
+    waitUntilOk
+  );
+  ctx.body = res;
+});
+
 router.get("/slide/:user", async (ctx) => {
   if (isSliding) {
     await waitUntilOk();
@@ -543,7 +578,7 @@ router.post("/slideLogin", async (ctx) => {
     } catch (e) {
       console.log(e);
     }
-    isSliding = false;
+    setSlidingFalse();
   }, 0);
 });
 
