@@ -9,8 +9,8 @@ sleep 3000
 curTitle:="a"
 moveOne(title){
     WinActivate, %title%
-    MouseMove, 1388, 1196
-    MouseClickDrag, left, 1388, 1196, 2235, 1233, 4
+    MouseMove, 1388, 1196,2
+    MouseClickDrag, left, 1388, 1196, 2235, 1233, 6
     sleep 500
     WinGetTitle, titleName, %title%
     return titleName

@@ -16,7 +16,8 @@ const eventBus = new eventEmitter();
 const uniPush = require("./uniPush");
 const slide = require("./slide.js");
 const slideLogin = require("./slideLogin.js");
-let getMobileActivityInfo = require("./getMobileActivityInfo");
+let getMobileActivityInfo = require("./getMobileActivityInfo2");
+eventEmitter.setMaxListeners(0)
 
 const {
   sleep,

@@ -143,6 +143,33 @@ let myClick = async (page, selector, timeout = 6000) => {
   await page.$eval(selector, (dom) => dom.click());
 };
 
+let cleanFileAfterClose = (browser) => {
+  let chromeSpawnArgs = browser.process().spawnargs;
+  let chromeTmpDataDir;
+  for (let i = 0; i < chromeSpawnArgs.length; i++) {
+    if (chromeSpawnArgs[i].indexOf("--user-data-dir=") === 0) {
+      chromeTmpDataDir = chromeSpawnArgs[i].replace("--user-data-dir=", "");
+      break;
+    }
+  }
+  browser.newClose = async () => {
+    try {
+      const isConnected = browser.isConnected();
+      if (!isConnected) {
+        browser = null;
+      } else {
+        await browser.close();
+      }
+
+      setTimeout(() => {
+        fsExtra.removeSync(chromeTmpDataDir);
+      }, 2000);
+    } catch (e) {
+      sendAppMsg("出错", "newClose执行失败", { type: "error" });
+    }
+  };
+};
+
 let getDouyaIp = async (platform, usingIp) => {
   let getIp = async () => {
     let { data } = await axios(
@@ -182,5 +209,6 @@ module.exports = {
   getDouyaIp,
   sleep,
   startDamaiUser,
-  myClick
+  myClick,
+  cleanFileAfterClose,
 };
