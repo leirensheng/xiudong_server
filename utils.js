@@ -175,7 +175,7 @@ let getDouyaIp = async (platform, usingIp) => {
     let { data } = await axios(
       `https://api.douyadaili.com/proxy/?service=GetUnl&authkey=wLBiTQSHE5opEXokzDwZ&num=${1}&format=json&distinct=${isDistinct}&detail=1&portlen=4`
     );
-    // console.log(data)
+    console.log(data)
     if (data.msg.match(/今日最大|资源不足/)) {
       isDistinct = 0;
     }
@@ -184,6 +184,7 @@ let getDouyaIp = async (platform, usingIp) => {
     if (usingIp[platform].includes(ip)) {
       throw new Error("重复");
     }
+    console.count()
     return ip;
   };
   let newFn = waitUntilSuccess(getIp, 5, 1000);

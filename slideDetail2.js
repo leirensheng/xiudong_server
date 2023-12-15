@@ -2,7 +2,12 @@ const path = require("path");
 const fs = require("fs");
 const puppeteer = require("puppeteer-core");
 const { runExe, stopExe } = require("./runExe");
-const { sleep, sendAppMsg, randomVal ,cleanFileAfterClose } = require("./utils");
+const {
+  sleep,
+  sendAppMsg,
+  randomVal,
+  cleanFileAfterClose,
+} = require("./utils");
 const findChrome = require("./node_modules/carlo/lib/find_chrome");
 let slide = async (url) => {
   let findChromePath = await findChrome({});
@@ -28,7 +33,7 @@ let slide = async (url) => {
     args,
     defaultViewport: { width: 1366, height: 768 },
   });
-  cleanFileAfterClose(browser)
+  cleanFileAfterClose(browser);
 
   let { pid } = browser.process();
   let newPage = await browser.newPage();
@@ -40,29 +45,29 @@ let slide = async (url) => {
     document.title = title;
   }, title);
 
-  let cookie=await new Promise(async (resolve, reject) => {
-    let interceptOrder
+  let cookie = await new Promise(async (resolve, reject) => {
+    let interceptOrder;
     let timer = setTimeout(async () => {
       sendAppMsg("出错", "自动滑动验证失败, 请手动滑动并启动", {
         type: "error",
       });
       stopExe();
-      reject("滑动超时了");
+      reject();
       interceptOrder.disable();
-      await sleep(0)
+      await sleep(0);
       await browser.newClose();
     }, 15000);
 
     sendAppMsg("提醒", "获取详情需要滑动验证", { type: "info" });
 
     let cookie = await new Promise(async (r) => {
-       interceptOrder = await intercept(
+      interceptOrder = await intercept(
         newPage,
         patterns.XHR("*_____tmd_____/report*"),
         {
           onResponseReceived: async ({ request, response }) => {
             try {
-              console.log("拦截到",request.headers.Cookie);
+              // console.log("拦截到",request.headers.Cookie);
               if (request.headers.Cookie.includes("x5sec")) {
                 interceptOrder.disable();
                 r(request.headers.Cookie);
@@ -75,15 +80,15 @@ let slide = async (url) => {
           },
         }
       );
-      runExe(pid, "a.exe", title);
+      runExe(pid, "b.exe", title);
     });
     clearTimeout(timer);
     sendAppMsg("提醒", "自动验证码Ok", { type: "info" });
-    await sleep(0)
+    await sleep(0);
     await browser.newClose();
     resolve(cookie);
   });
-  return cookie
+  return cookie;
 };
 
 module.exports = slide;

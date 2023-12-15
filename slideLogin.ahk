@@ -16,6 +16,5 @@ moveOne(title){
 isOk:=false
 while(!isOk){
     curTitle:= moveOne(title)
-    ToolTip, %curTitle%
     isOk := StrLen(curTitle)==0
 }

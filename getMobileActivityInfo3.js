@@ -8,7 +8,9 @@ let {
   waitUntilSuccess,
   getTime,
 } = require("./utils");
-let slideDetail = require("./slideDetail");
+let slideDetail = require("./slideDetail2");
+const eventEmitter = require("events");
+const eventBus = new eventEmitter();
 
 class Main {
   constructor() {
@@ -18,10 +20,8 @@ class Main {
   }
   waitUntilOk = async (eventBus) => {
     if (this.isRunning) {
-      console.log("运行中,需等待");
       await new Promise((r) => {
         eventBus.once("runningDone", r);
-        console.log("等待完成");
       });
       await sleep(0);
       if (this.isRunning) {
@@ -37,6 +37,8 @@ class Main {
     return result;
   }
 
+
+  
   getToken(cookie) {
     let v1 = cookie.match(/_m_h5_tk_enc=(.*?);/)[1];
     let v2 = cookie.match(/_m_h5_tk=(.*?);/)[1];
@@ -99,21 +101,18 @@ class Main {
     }
     return res;
   }
-  async getMobileDetail({
+  async getMobileDetail(
     activityId,
     dataId,
-    eventBus,
-    setIsSlideRunning,
-    waitUntilSlideOk,
-    isSecondTime,
-  }) {
-    if (this.isRunning && !isSecondTime) {
+
+    ) {
+    if (this.isRunning) {
       await this.waitUntilOk(eventBus);
     }
     this.isRunning = true;
 
     let isWx = [
-      746552023427, 747189662387, 747510019489, 752523428569, 743801673038,751154679549
+      746552023427, 747189662387, 747510019489, 752523428569, 743801673038,
     ].includes(Number(activityId));
 
     if (!this.cookie) {
@@ -138,10 +137,8 @@ class Main {
     )}`;
 
     let result = {};
-    let res;
     try {
       let getOneTime = async () => {
-        console.log('getOneTime 开始')
         let headers = {
           accept: "application/json",
           "accept-language": "zh-CN,zh;q=0.9",
@@ -165,57 +162,35 @@ class Main {
 
           Referer: "https://m.damai.cn/",
         };
-        res = await fetch(url, {
+        let res = await fetch(url, {
           headers,
           timeout: 1500,
           body: null,
           method: "GET",
         });
 
-        console.log('getOneTime 结束')
-
         res = await res.json();
         if (res.ret && res.ret.some((one) => one.includes("挤爆"))) {
           console.log("挤爆");
           let slideUrl = res.data.url;
           console.log(slideUrl);
-          console.log("等待slideOk");
-          await waitUntilSlideOk();
-          console.log("完成等待slideOk");
-          setIsSlideRunning(true);
-          try {
-            console.log('滑动')
+            try {
             let cookie = await slideDetail(slideUrl);
-            console.log('滑动完成了')
-
-            setIsSlideRunning(false);
-            console.log('设置了slideFalse')
-
+ 
             console.log(cookie);
             this.cookie = this.cookie + cookie;
-          console.log('滑动后getOneTime')
             return await getOneTime();
           } catch (e) {
-            console.log('滑动失败了')
-            setIsSlideRunning(false);
-            console.log('2设置了slideFalse')
             throw e;
           }
-        } else if (
-          res.ret.some((one) => one.includes("令牌过期")) ||
-          res.data?.errorMsg?.includes("小二很忙")
-        ) {
+        } else if (res.ret.some((one) => one.includes("令牌过期"))) {
           this.cookie = "";
           this.token = "";
-          console.log('很忙或者过期gegDeati')
-          return await this.getMobileDetail({
+          return await getMobileDetail(
             activityId,
             dataId,
             eventBus,
-            setIsSlideRunning,
-            waitUntilSlideOk,
-            isSecondTime: true,
-          });
+           );
         } else if (res.ret[0].includes("成功")) {
           return JSON.parse(res.data.result);
         } else {
@@ -224,11 +199,12 @@ class Main {
           });
           throw new Error("滑动服务返回信息异常" + JSON.stringify(res));
         }
+
       };
       result = await getOneTime();
     } catch (e) {
-      console.log(1112222,e, res);
-      result= {};
+      console.log(e);
+      return {};
     }
     this.isRunning = false;
     eventBus.emit("runningDone", true);
@@ -240,13 +216,13 @@ class Main {
 
 let obj = new Main();
 obj.getMobileDetail.bind(obj);
-module.exports = async (args) => {
-  let res = await obj.getMobileDetail(args);
+module.exports = async (...args) => {
+  let res = await obj.getMobileDetail(...args);
   return res;
 };
 
-// (async () => {
-//   await obj.getMobileDetail(729843682819, 211410839);
-//   await obj.getMobileDetail(729843682819, 211410839);
-//   await obj.getMobileDetail(729843682819, 211410839);
-// })();
+(async () => {
+  await obj.getMobileDetail(729843682819, 211410839);
+  // await obj.getMobileDetail(729843682819, 211410839);
+  // await obj.getMobileDetail(729843682819, 211410839);
+})();

@@ -17,7 +17,7 @@ const uniPush = require("./uniPush");
 const slide = require("./slide.js");
 const slideLogin = require("./slideLogin.js");
 let getMobileActivityInfo = require("./getMobileActivityInfo2");
-eventEmitter.setMaxListeners(0)
+eventEmitter.setMaxListeners(0);
 
 const {
   sleep,
@@ -49,10 +49,10 @@ const router = new Router();
 let isSliding = false;
 
 let setIsSlideRunning = (val) => {
-  if(val){
+  if (val) {
     isSliding = val;
-  }else{
-    setSlidingFalse()
+  } else {
+    setSlidingFalse();
   }
 };
 let getIsSlideRunning = () => isSliding;
@@ -529,17 +529,16 @@ router.post("/setIsSlideRunning", async (ctx) => {
   ctx.status = 200;
 });
 
-
 router.get("/getMobileActivityInfo", async (ctx) => {
   let { activityId, dataId } = ctx.query;
-  let res = await getMobileActivityInfo(
+  let res = await getMobileActivityInfo({
     activityId,
     dataId,
     eventBus,
     setIsSlideRunning,
-    getIsSlideRunning,
-    waitUntilOk
-  );
+    waitUntilSlideOk: waitUntilOk,
+    isSecondTime: false,
+  });
   ctx.body = res;
 });
 
@@ -584,4 +583,4 @@ router.post("/slideLogin", async (ctx) => {
 });
 
 app.listen(4000, "0.0.0.0");
-console.log("server listening 4000");
+console.log("server listening 4000", getTime());

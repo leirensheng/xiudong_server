@@ -6,6 +6,7 @@ const { intercept, patterns } = require("puppeteer-interceptor");
 let random = (min, max) => Math.floor(Math.random() * (max - min)) + min;
 const { runExe, stopExe } = require("./runExe");
 let dir = path.resolve(__dirname, "mobileBrowser");
+const fsExtra = require('fs-extra')
 
 let pid;
 let openPage = async (userDataDir, isHeadless) => {
@@ -30,7 +31,7 @@ let openPage = async (userDataDir, isHeadless) => {
     executablePath,
     ignoreDefaultArgs: ["--enable-automation"],
     headless: isHeadless,
-    devtools: false,
+    devtools: true,
     args,
     defaultViewport: { width: 1366, height: 768 },
   };
@@ -164,7 +165,7 @@ let getInfo = async (
     }
     // todo:微信检测 固定在文件上
     let isWx = [
-      746552023427, 747189662387, 747510019489, 752523428569,
+      746552023427, 747189662387, 747510019489, 752523428569, 743801673038,
     ].includes(Number(activityId));
     if (isWx) {
       console.log("设置微信的ua");
@@ -175,6 +176,7 @@ let getInfo = async (
 
     let getFirst = async () =>
       await new Promise(async (resolve, reject) => {
+
         let interceptInfo = async () => {
           let interceptDetail = await intercept(
             page,
@@ -254,6 +256,10 @@ let getInfo = async (
             let newRes = await getFirst();
             resolve(newRes);
           } else {
+            setTimeout(() => {
+              console.log("getFirst超时")
+              reject(new Error("getFirst超时"));
+            }, 1500);
             await page.waitForFunction(
               () => {
                 return document.querySelector(".buy__button").innerText;
@@ -434,6 +440,20 @@ let getInfo = async (
           console.log("准备打开可视化浏览器", getTime());
           let res = await fn(false);
 
+          await browser.close();
+          browser = null;
+          console.log("可视化浏览器后返回的结果", getTime());
+          resolve(res);
+        } else if (e && e.message && e.message.includes("getFirst超时")) {
+          await browser.close();
+          browser = null;
+          await sleep(2000)
+          await fsExtra.removeSync(path.resolve(__dirname, "mobileBrowser"));
+          await fsExtra.ensureDir(path.resolve(__dirname, "mobileBrowser"));
+
+          console.log('删除了')
+          console.log("准备打开可视化浏览器", getTime());
+          let res = await fn(false);
           await browser.close();
           browser = null;
           console.log("可视化浏览器后返回的结果", getTime());
