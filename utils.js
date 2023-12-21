@@ -76,8 +76,44 @@ function nodeEnvBind(termMap) {
   return term;
 }
 
+let startSendTime;
+let sendTimeInLast30Second = 0;
+let sendFre = false;
 let sendAppMsg = async (title, content, payload) => {
   try {
+    if (sendFre) return;
+    sendTimeInLast30Second++;
+
+    if (!startSendTime) {
+      startSendTime = Date.now();
+    } else {
+      let dis = Date.now() - startSendTime;
+      console.log(dis, sendTimeInLast30Second);
+      if (dis >= 30) {
+        startSendTime = Date.now();
+        if (sendTimeInLast30Second > 40) {
+          sendFre = true;
+          await axios({
+            method: "post",
+            data: {
+              title: "出错",
+              content: "发送信息频繁,0.3秒内超过40条信息, 暂停接受30s",
+              payload: {
+                type: "error",
+              },
+            },
+            url: `http://localhost:4000/sendAppMsg`,
+          });
+          sendTimeInLast30Second = 0;
+          setTimeout(() => {
+            sendFre = false;
+          }, 30000);
+          return;
+        }
+        sendTimeInLast30Second = 0;
+      }
+    }
+
     await axios({
       method: "post",
       data: { title, content, payload },
@@ -175,7 +211,7 @@ let getDouyaIp = async (platform, usingIp) => {
     let { data } = await axios(
       `https://api.douyadaili.com/proxy/?service=GetUnl&authkey=wLBiTQSHE5opEXokzDwZ&num=${1}&format=json&distinct=${isDistinct}&detail=1&portlen=4`
     );
-    console.log(data)
+    console.log(data);
     if (data.msg.match(/今日最大|资源不足/)) {
       isDistinct = 0;
     }
@@ -184,7 +220,7 @@ let getDouyaIp = async (platform, usingIp) => {
     if (usingIp[platform].includes(ip)) {
       throw new Error("重复");
     }
-    console.count()
+    console.count();
     return ip;
   };
   let newFn = waitUntilSuccess(getIp, 5, 1000);
