@@ -8,6 +8,8 @@ const fs = require("fs");
 const axios = require("axios");
 let isDistinct = 1;
 let sleep = (time) => new Promise((r) => setTimeout(r, time));
+let mainUid = `UID_ZFqEpe7kmm27SJ466yXdnbeWyIgL`;
+const uniPush = require("./uniPush");
 
 let sendMsgForCustomer = async (content, uid) => {
   const message = new Message();
@@ -26,6 +28,15 @@ let zipConfig = (username) => {
   file.addLocalFolder(dest);
   file.writeZip(zipPath);
   return zipPath;
+};
+let sendMsg = async (content) => {
+  const message = new Message();
+  message.content = `${content}`;
+  message.uids = [mainUid];
+  const result = await new WxPusher("AT_s8ql37DbRNkrItpYhUK60xNNTeNE3ekp").send(
+    message
+  );
+  console.log(result);
 };
 
 let removeConfig = async (username, isNoRemove) => {
@@ -93,17 +104,14 @@ let sendAppMsg = async (title, content, payload) => {
         startSendTime = Date.now();
         if (sendTimeInLast30Second > 40) {
           sendFre = true;
-          await axios({
-            method: "post",
-            data: {
-              title: "出错",
-              content: "发送信息频繁,0.3秒内超过40条信息, 暂停接受30s",
-              payload: {
-                type: "error",
-              },
-            },
-            url: `http://localhost:4000/sendAppMsg`,
-          });
+
+          await uniPush(
+            "出错",
+            "发送信息频繁,0.3秒内超过40条信息, 暂停接受30s",
+            {
+              type: "error",
+            }
+          );
           sendTimeInLast30Second = 0;
           setTimeout(() => {
             sendFre = false;
@@ -114,11 +122,7 @@ let sendAppMsg = async (title, content, payload) => {
       }
     }
 
-    await axios({
-      method: "post",
-      data: { title, content, payload },
-      url: `http://localhost:4000/sendAppMsg`,
-    });
+    await uniPush(title, content, payload);
   } catch (e) {
     sendMsg("推送失败" + e.message);
     console.log(e);

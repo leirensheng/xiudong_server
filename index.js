@@ -14,7 +14,7 @@ const websocket = require("koa-easy-ws");
 const getDynv6Ip = require("../xiudongPupp/getDynv6Ip");
 const eventBus = new eventEmitter();
 const uniPush = require("./uniPush");
-const slide = require("./slide.js");
+const a = require("./slide.js");
 const slideLogin = require("./slideLogin.js");
 let getMobileActivityInfo = require("./getMobileActivityInfo2");
 eventEmitter.setMaxListeners(0);
@@ -26,7 +26,7 @@ const {
   readFile,
   writeFile,
   nodeEnvBind,
-  waitUntilSuccess,
+  sendAppMsg,
   sendMsgForCustomer,
   getDouyaIp,
   startDamaiUser,
@@ -511,8 +511,9 @@ router.get("/removeAllAppMsg", async (ctx, next) => {
 });
 
 router.post("/sendAppMsg", async (ctx, next) => {
+  console.log('接受到请求发送app')
   let { title, content, payload } = ctx.request.body;
-  await uniPush(title, content, payload);
+  await sendAppMsg(title, content, payload);
   ctx.status = 200;
 });
 
