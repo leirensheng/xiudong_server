@@ -34,7 +34,18 @@ const {
 const { getTime } = require("../xiudongPupp/utils");
 let dest = path.resolve("../xiudongPupp/userData");
 const agentMap = require("./agentMap.js");
-
+const schedule = require("node-schedule");
+schedule.scheduleJob("* 23 * * *", function () {
+  let dir = "C:/Users/leirensheng/AppData/Local/Temp";
+  let res = fs.readdirSync(dir);
+  res.forEach((one) => {
+    fsExtra.remove(path.resolve(dir, one), (err) => {
+      if (err) {
+        console.log("删除文件失败:" + one);
+      }
+    });
+  });
+});
 let usingIp = {
   damai: [],
   xingqiu: [],

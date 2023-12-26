@@ -25,6 +25,7 @@
     "koa-easy-ws": "^2.1.0",
     "koa-router": "^12.0.0",
     "node-pty": "^0.10.1",
+    "node-schedule": "^2.1.1",
     "pkg": "^5.8.0",
     "puppeteer-core": "^21.5.2",
     "puppeteer-interceptor": "^2.2.0",
