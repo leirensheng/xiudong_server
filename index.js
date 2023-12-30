@@ -13,8 +13,6 @@ let cmd2 = require("./cmd2");
 const websocket = require("koa-easy-ws");
 const getDynv6Ip = require("../xiudongPupp/getDynv6Ip");
 const eventBus = new eventEmitter();
-const uniPush = require("./uniPush");
-const a = require("./slide.js");
 const slideLogin = require("./slideLogin.js");
 const fsExtra = require('fs-extra')
 let getMobileActivityInfo = require("./getMobileActivityInfo2");
@@ -36,7 +34,7 @@ const { getTime } = require("../xiudongPupp/utils");
 let dest = path.resolve("../xiudongPupp/userData");
 const agentMap = require("./agentMap.js");
 const schedule = require("node-schedule");
-schedule.scheduleJob("* 37 * * * *", function () {
+schedule.scheduleJob("0 0 22 * * *", function () {
   let dir = "C:/Users/leirensheng/AppData/Local/Temp";
   let res = fs.readdirSync(dir);
   res.forEach((one) => {

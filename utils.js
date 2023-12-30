@@ -91,6 +91,14 @@ let startSendTime;
 let sendTimeInLast30Second = 0;
 let sendFre = false;
 let sendAppMsg = async (title, content, payload) => {
+  if (!content || typeof content !== "string") {
+    let msg = "发送信息出错,内容错";
+    console.log(msg, content);
+    await uniPush("出错", "发送信息出错,内容错", {
+      type: "error",
+    });
+    return;
+  }
   try {
     if (sendFre) return;
     sendTimeInLast30Second++;
