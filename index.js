@@ -34,6 +34,21 @@ const { getTime } = require("../xiudongPupp/utils");
 let dest = path.resolve("../xiudongPupp/userData");
 const agentMap = require("./agentMap.js");
 const schedule = require("node-schedule");
+let localSocket
+let getLocalSocket = async () => {
+  if (localSocket) {
+    return localSocket;
+  } else {
+    return new Promise((r) => {
+      eventBus.once("socketReady", () => {
+        sendAppMsg("提示", "新方式等待完成获取得到localSocket");
+        r(localSocket);
+      });
+    });
+  }
+};
+
+
 schedule.scheduleJob("0 0 22 * * *", function () {
   let dir = "C:/Users/leirensheng/AppData/Local/Temp";
   let res = fs.readdirSync(dir);
@@ -164,7 +179,8 @@ router.post("/addInfo", async (ctx) => {
     ctx.body = {
       code: 0,
     };
-    localSocket.send(JSON.stringify({ type: "getConfigList" }));
+    let curSocket = await getLocalSocket();
+    curSocket.send(JSON.stringify({ type: "getConfigList" }));
   } catch (e) {
     ctx.body = {
       code: -1,
@@ -240,7 +256,7 @@ router.get("/closeAll", (ctx, next) => {
   ctx.body = "";
 });
 
-router.get("/close/:pid", (ctx, next) => {
+router.get("/close/:pid", async(ctx, next) => {
   const pid = parseInt(ctx.params.pid);
   const term = termMap.get(pid);
   let isFromRemote = ctx.query.isFromRemote;
@@ -249,7 +265,8 @@ router.get("/close/:pid", (ctx, next) => {
       cmd2("taskkill /T /F /PID " + term.pid);
       console.log("终止终端");
       if (isFromRemote) {
-        localSocket.send(
+        let curSocket = await getLocalSocket();
+        curSocket.send(
           JSON.stringify({
             type: "closePid",
             pid,
@@ -311,6 +328,7 @@ router.get("/socket/:pid", async (ctx, next) => {
 router.get("/electronSocket", async (ctx, next) => {
   if (ctx.ws) {
     localSocket = await ctx.ws();
+    eventBus.emit("socketReady");
     localSocket.on("message", (str) => {
       try {
         let { type, data } = JSON.parse(str);
@@ -395,7 +413,8 @@ router.post("/startUserFromRemote", async (ctx, next) => {
   let promise = new Promise((r) => {
     eventBus.once("startUserDone", r);
   });
-  localSocket.send(
+  let curSocket = await getLocalSocket();
+  curSocket.send(
     JSON.stringify({ type: "startUser", cmd: ctx.request.body.cmd })
   );
   let { isSuccess, msg } = await promise;
@@ -408,7 +427,8 @@ router.post("/startUserFromRemote", async (ctx, next) => {
 router.post("/removeConfig", async (ctx, next) => {
   let { username } = ctx.request.body;
   await removeConfig(username, true);
-  localSocket.send(JSON.stringify({ type: "getConfigList" }));
+  let curSocket = await getLocalSocket();
+  curSocket.send(JSON.stringify({ type: "getConfigList" }));
   ctx.status = 200;
 });
 
@@ -421,12 +441,14 @@ router.post("/toCheck", async (ctx, next) => {
     isSuccessStop: true,
   });
   await removeConfig(username, true);
-  localSocket.send(JSON.stringify({ type: "getConfigList" }));
+  let curSocket = await getLocalSocket();
+  curSocket.send(JSON.stringify({ type: "getConfigList" }));
   ctx.status = 200;
 });
 
 router.get("/recover", async (ctx) => {
-  localSocket.send(JSON.stringify({ type: "recover" }));
+  let curSocket = await getLocalSocket();
+  curSocket.send(JSON.stringify({ type: "recover" }));
   let { failCmds } = await new Promise((resolve) => {
     eventBus.once("recoverDone", resolve);
   });
@@ -521,8 +543,8 @@ router.get("/removeAllAppMsg", async (ctx, next) => {
 });
 
 router.post("/sendAppMsg", async (ctx, next) => {
-  console.log('接受到请求发送app')
   let { title, content, payload } = ctx.request.body;
+  console.log('接受到请求发送app',content)
   await sendAppMsg(title, content, payload);
   ctx.status = 200;
 });
