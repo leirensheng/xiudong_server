@@ -14,9 +14,10 @@ const websocket = require("koa-easy-ws");
 const getDynv6Ip = require("../xiudongPupp/getDynv6Ip");
 const eventBus = new eventEmitter();
 const slideLogin = require("./slideLogin.js");
-const fsExtra = require('fs-extra')
+const fsExtra = require("fs-extra");
 let getMobileActivityInfo = require("./getMobileActivityInfo2");
 eventEmitter.setMaxListeners(0);
+const child_process = require("child_process");
 
 const {
   sleep,
@@ -34,7 +35,7 @@ const { getTime } = require("../xiudongPupp/utils");
 let dest = path.resolve("../xiudongPupp/userData");
 const agentMap = require("./agentMap.js");
 const schedule = require("node-schedule");
-let localSocket
+let localSocket;
 let getLocalSocket = async () => {
   if (localSocket) {
     return localSocket;
@@ -47,7 +48,6 @@ let getLocalSocket = async () => {
     });
   }
 };
-
 
 schedule.scheduleJob("0 0 22 * * *", function () {
   let dir = "C:/Users/leirensheng/AppData/Local/Temp";
@@ -238,8 +238,9 @@ router.post("/copyUserFile", async (ctx) => {
 
 //服务端初始化
 router.get("/terminal", (ctx, next) => {
-  const term = nodeEnvBind(termMap);
-  let pid = term.pid.toString();
+  let childProcess = child_process.fork("./openMiddleProcess.js");
+  let pid = childProcess.pid;
+  termMap.set(pid, childProcess);
   console.log("\r\n新增进程", pid);
   ctx.body = pid;
 });
@@ -256,7 +257,7 @@ router.get("/closeAll", (ctx, next) => {
   ctx.body = "";
 });
 
-router.get("/close/:pid", async(ctx, next) => {
+router.get("/close/:pid", async (ctx, next) => {
   const pid = parseInt(ctx.params.pid);
   const term = termMap.get(pid);
   let isFromRemote = ctx.query.isFromRemote;
@@ -306,7 +307,7 @@ router.get("/socket/:pid", async (ctx, next) => {
     const pid = parseInt(ctx.request.params.pid);
     const term = termMap.get(pid);
     let hasClose = false;
-    term.on("data", (data) => {
+    term.on("message", (data) => {
       if (!hasClose) {
         console.log("发送信息");
         ws.send(data);
@@ -316,7 +317,7 @@ router.get("/socket/:pid", async (ctx, next) => {
     ws.on("message", (data) => {
       console.log("命令", data.toString().trim());
       pidToCmd[pid] = data.toString().trim();
-      term.write(data.toString());
+      term.send({ type: "startCmd", cmd: data.toString() });
     });
     ws.on("close", () => {
       console.log(pid + "关闭连接", Object.keys(term));
@@ -544,7 +545,7 @@ router.get("/removeAllAppMsg", async (ctx, next) => {
 
 router.post("/sendAppMsg", async (ctx, next) => {
   let { title, content, payload } = ctx.request.body;
-  console.log('接受到请求发送app',content)
+  console.log("接受到请求发送app", content);
   await sendAppMsg(title, content, payload);
   ctx.status = 200;
 });

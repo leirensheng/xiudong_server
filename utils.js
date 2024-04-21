@@ -1,4 +1,3 @@
-const pty = require("node-pty");
 const { WxPusher, Message } = require("wxpusher");
 const os = require("os");
 let AdmZip = require("adm-zip");
@@ -72,20 +71,7 @@ function writeFile(name, data) {
     });
   });
 }
-function nodeEnvBind(termMap) {
-  //绑定当前系统 node 环境
-  const shell = os.platform() === "win32" ? "powershell.exe" : "bash";
 
-  const term = pty.spawn(shell, [], {
-    name: "xterm-color",
-    cols: 80,
-    rows: 24,
-    cwd: path.resolve(__dirname, "../xiudongPupp"),
-    env: process.env,
-  });
-  termMap.set(term.pid, term);
-  return term;
-}
 
 let startSendTime;
 let sendTimeInLast30Second = 0;
@@ -247,7 +233,6 @@ module.exports = {
   removeConfig,
   readFile,
   writeFile,
-  nodeEnvBind,
   sendMsgForCustomer,
   waitUntilSuccess,
   random,
