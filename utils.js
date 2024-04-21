@@ -223,14 +223,13 @@ let getDouyaIp = async (platform, usingIp) => {
     let { data } = await axios(
       `https://api.douyadaili.com/proxy/?service=GetUnl&authkey=wLBiTQSHE5opEXokzDwZ&num=${1}&format=json&distinct=${isDistinct}&detail=1&portlen=4`
     );
-    console.log(data);
     if (data.msg.match(/今日最大|资源不足/)) {
       isDistinct = 0;
     }
     let ip = data.data[0].ip + ":" + data.data[0].port;
     // console.log("platform", platform);
     if (usingIp[platform].includes(ip)) {
-      throw new Error("重复");
+      throw new Error(platform+"重复");
     }
     console.count();
     return ip;

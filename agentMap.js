@@ -29,10 +29,10 @@ module.exports = {
     shortName: "火",
     phone: "15116787101",
   },
-  huan: {
-    uid: "UID_N7psVzyP0ClQ0ITNxH3rGbFZLLKq",
-    username: "欢呐",
-    shortName: "欢",
-    phone: "15914922530",
+  fang: {
+    uid: "UID_NnnEA8tzXX6NV6a7JKmfsXLqBe93",
+    username: "方方",
+    shortName: "方",
+    phone: "15579382457",
   },
 };
