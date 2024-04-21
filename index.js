@@ -63,11 +63,16 @@ schedule.scheduleJob("0 0 22 * * *", function () {
 let usingIp = {
   damai: [],
   xingqiu: [],
+  maoyan: [],
+  xiudong: [],
 };
 let notExpiredIp = {
   damai: [],
   xingqiu: [],
+  maoyan: [],
+  xiudong: [],
 };
+let allPlatforms = Object.keys(notExpiredIp);
 let msgList = [];
 const app = new Koa();
 const router = new Router();
@@ -254,6 +259,11 @@ router.get("/closeAll", (ctx, next) => {
     delete pidToCmd[pid];
   });
   console.log("清除所有终端");
+  ctx.body = "";
+});
+
+router.get("/restartSlideServer", (ctx, next) => {
+  cmd2("pm2 restart slideServer");
   ctx.body = "";
 });
 
@@ -484,18 +494,34 @@ router.post("/editConfig", async (ctx) => {
 
 router.get("/getValidIp", async (ctx) => {
   let platform = ctx.query.platform;
-  let customerPlatform = ctx.query.customerPlatform;
   let ip;
-  let ips = notExpiredIp[platform];
-  if (ips.length) {
-    console.log("直接从之前的获取");
-    ip = ips.pop();
+
+  let platformsCanUse = allPlatforms.filter((one) => one !== platform);
+  let hasIpsPlatform = platformsCanUse.find((one) => notExpiredIp[one].length);
+  if (hasIpsPlatform) {
+    // 优先从有效期最长的拿？
+    console.log(notExpiredIp);
+    console.log(
+      `=======${hasIpsPlatform}还有的ip数量: ${notExpiredIp[hasIpsPlatform].length}==========================`
+    );
+    ip = notExpiredIp[hasIpsPlatform].pop();
   } else {
-    ip = await getDouyaIp(customerPlatform, usingIp);
+    ip = await getDouyaIp(platform, usingIp);
+    usingIp[platform].push(ip);
+    notExpiredIp[platform].push(ip);
+    console.count();
+    // 确保notExpiredIp至少有7s有效时间
+    setTimeout(() => {
+      let i = notExpiredIp[platform].indexOf(ip);
+      if (i !== -1) {
+        notExpiredIp[platform].splice(i, 1);
+      }
+    }, 53000);
   }
   ctx.body = ip;
 });
 
+// 暂时没有用
 router.get("/getProxyIp", async (ctx) => {
   let platform = ctx.query.platform;
   let realIp = await getDouyaIp(platform, usingIp);
@@ -519,7 +545,9 @@ router.get("/removeIp", async (ctx, next) => {
   let i = usingIp[platform].indexOf(ip);
   usingIp[platform].splice(i, 1);
   i = notExpiredIp[platform].indexOf(ip);
-  notExpiredIp[platform].splice(i, 1);
+  if (i !== -1) {
+    notExpiredIp[platform].splice(i, 1);
+  }
   // console.log(platform + "删除一个");
   ctx.response.status = 200;
 });
