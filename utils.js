@@ -123,16 +123,6 @@ let sendAppMsg = async (title, content, payload) => {
   }
 };
 
-let startDamaiUser = async (user) => {
-  await axios({
-    method: "post",
-    data: {
-      cmd: "npm run start " + user,
-    },
-    url: `http://localhost:5000/startUserFromRemote`,
-  });
-};
-
 let waitUntilSuccess = (fn, times0 = 20, sleepTime = 5000) => {
   return async function (...args) {
     let times = times0;
@@ -241,7 +231,6 @@ module.exports = {
   sendAppMsg,
   getDouyaIp,
   sleep,
-  startDamaiUser,
   myClick,
   cleanFileAfterClose,
 };

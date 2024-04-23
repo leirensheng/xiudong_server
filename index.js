@@ -15,7 +15,6 @@ const getDynv6Ip = require("../xiudongPupp/getDynv6Ip");
 const eventBus = new eventEmitter();
 const slideLogin = require("./slideLogin.js");
 const fsExtra = require("fs-extra");
-let getMobileActivityInfo = require("./getMobileActivityInfo2");
 eventEmitter.setMaxListeners(0);
 const child_process = require("child_process");
 
@@ -25,11 +24,9 @@ const {
   removeConfig,
   readFile,
   writeFile,
-  nodeEnvBind,
   sendAppMsg,
   sendMsgForCustomer,
   getDouyaIp,
-  startDamaiUser,
 } = require("./utils");
 const { getTime } = require("../xiudongPupp/utils");
 let dest = path.resolve("../xiudongPupp/userData");
@@ -76,33 +73,6 @@ let allPlatforms = Object.keys(notExpiredIp);
 let msgList = [];
 const app = new Koa();
 const router = new Router();
-let isSliding = false;
-
-let setIsSlideRunning = (val) => {
-  if (val) {
-    isSliding = val;
-  } else {
-    setSlidingFalse();
-  }
-};
-let getIsSlideRunning = () => isSliding;
-
-let setSlidingFalse = () => {
-  isSliding = false;
-  eventBus.emit("slidingFalse");
-};
-
-let waitUntilOk = async () => {
-  if (isSliding) {
-    await new Promise((r) => {
-      eventBus.once("slidingFalse", r);
-    });
-    await sleep(0);
-    if (isSliding) {
-      return waitUntilOk();
-    }
-  }
-};
 
 app
   .use(async (ctx, next) => {
@@ -580,68 +550,6 @@ router.post("/sendAppMsg", async (ctx, next) => {
 
 router.get("/getAgentMap", async (ctx) => {
   ctx.body = agentMap;
-});
-
-router.get("/getIsSlideRunning", async (ctx) => {
-  ctx.body = isSliding;
-});
-
-router.post("/setIsSlideRunning", async (ctx) => {
-  isSliding = ctx.request.body.isSliding;
-  ctx.status = 200;
-});
-
-router.get("/getMobileActivityInfo", async (ctx) => {
-  let { activityId, dataId } = ctx.query;
-  let res = await getMobileActivityInfo({
-    activityId,
-    dataId,
-    eventBus,
-    setIsSlideRunning,
-    waitUntilSlideOk: waitUntilOk,
-    isSecondTime: false,
-  });
-  ctx.body = res;
-});
-
-router.get("/slide/:user", async (ctx) => {
-  if (isSliding) {
-    await waitUntilOk();
-  }
-  ctx.status = 200;
-  setTimeout(async () => {
-    isSliding = true;
-
-    let user = ctx.params.user;
-    let { url } = ctx.query;
-    console.log("用户", user, url);
-
-    try {
-      await slide({ user, url });
-      await startDamaiUser(user);
-    } catch (e) {
-      console.log(e);
-    }
-    isSliding = false;
-  }, 0);
-});
-
-router.post("/slideLogin", async (ctx) => {
-  console.log("收到slide请求", ctx.request.body);
-  if (isSliding) {
-    await waitUntilOk();
-  }
-  ctx.status = 200;
-  setTimeout(async () => {
-    isSliding = true;
-
-    try {
-      await slideLogin(ctx.request.body);
-    } catch (e) {
-      console.log(e);
-    }
-    setSlidingFalse();
-  }, 0);
 });
 
 app.listen(4000, "0.0.0.0");
