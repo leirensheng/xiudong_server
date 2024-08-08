@@ -218,7 +218,7 @@ let cleanFileAfterClose = (browser) => {
   };
 };
 
-let getDouyaIp = async (platform, usingIp) => {
+let getDouyaIp = async () => {
   let getIp = async () => {
     let { data } = await axios(
       `https://api.douyadaili.com/proxy/?service=GetUnl&authkey=wLBiTQSHE5opEXokzDwZ&num=${1}&format=json&distinct=${isDistinct}&detail=1&portlen=4`
@@ -226,15 +226,17 @@ let getDouyaIp = async (platform, usingIp) => {
     if (data.msg.match(/今日最大|资源不足/)) {
       isDistinct = 0;
     }
-    let ip = data.data[0].ip + ":" + data.data[0].port;
-    // console.log("platform", platform);
-    if (usingIp[platform].includes(ip)) {
-      throw new Error(platform+"重复");
+    if(!data.data.length){
+      console.log(data)
+      throw new Error('找不到ip')
     }
+    let ip = data.data[0].ip + ":" + data.data[0].port;
+    console.log("isDistincet",isDistinct)
+    console.log('提取到的ip',ip)
     console.count();
     return ip;
   };
-  let newFn = waitUntilSuccess(getIp, 5, 1000);
+  let newFn = waitUntilSuccess(getIp, 5, 100);
   let realIp = await newFn();
   return realIp;
 };

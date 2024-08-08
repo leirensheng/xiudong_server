@@ -48,6 +48,12 @@ let getLocalSocket = async () => {
   }
 };
 
+let startUserServer = () => {
+  cmd2("cd ../damaiUser/toN1 &&  http-server -p 7777");
+};
+
+startUserServer();
+
 schedule.scheduleJob("0 0 22 * * *", function () {
   let dir = "C:/Users/leirensheng/AppData/Local/Temp";
   let res = fs.readdirSync(dir);
@@ -61,12 +67,14 @@ schedule.scheduleJob("0 0 22 * * *", function () {
 });
 let usingIp = {
   damai: [],
+  bili: [],
   xingqiu: [],
   maoyan: [],
   xiudong: [],
 };
 let notExpiredIp = {
   damai: [],
+  bili: [],
   xingqiu: [],
   maoyan: [],
   xiudong: [],
@@ -504,17 +512,18 @@ router.get("/getValidIp", async (ctx) => {
     );
     ip = notExpiredIp[hasIpsPlatform].pop();
   } else {
-    ip = await getDouyaIp(platform, usingIp);
-    usingIp[platform].push(ip);
-    notExpiredIp[platform].push(ip);
-    console.count();
-    // 确保notExpiredIp至少有7s有效时间
-    setTimeout(() => {
-      let i = notExpiredIp[platform].indexOf(ip);
-      if (i !== -1) {
-        notExpiredIp[platform].splice(i, 1);
-      }
-    }, 53000);
+    ip = await getDouyaIp();
+    if (!notExpiredIp[platform].includes(ip)) {
+      notExpiredIp[platform].push(ip);
+      console.count();
+      // 确保notExpiredIp至少有7s有效时间
+      setTimeout(() => {
+        let i = notExpiredIp[platform].indexOf(ip);
+        if (i !== -1) {
+          notExpiredIp[platform].splice(i, 1);
+        }
+      }, 53000);
+    }
   }
   ctx.body = ip;
 });

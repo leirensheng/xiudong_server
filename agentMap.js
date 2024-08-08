@@ -35,4 +35,34 @@ module.exports = {
     shortName: "方",
     phone: "15579382457",
   },
+  kun: {
+    uid: "UID_gnBIR3rjBCfrNJiazBnCZFt8GMVJ",
+    username: "坤",
+    shortName: "坤",
+    phone: "18218062022",
+  },
+  ye: {
+    uid: "UID_iNVHruFXKkr1eiZRQYnqxY0HlO2I",
+    username: "椰",
+    shortName: "椰",
+    phone: "13692984014",
+  },
+  molly: {
+    uid: "UID_RSuh4wFmV60IpREAD3dcD4OKS4Ld",
+    username: "姐",
+    shortName: "姐",
+    phone: "13422580347",
+  },
+  me: {
+    uid: "UID_RSuh4wFmV60IpREAD3dcD4OKS4Ld",
+    username: "胜",
+    shortName: "胜",
+    phone: "15521373109",
+  },
+  mou: {
+    uid: "UID_6Wmlu0N74B6HI3d0i9OZyZQJeFIn",
+    username: "哞",
+    shortName: "哞",
+    phone: "17765528215",
+  },
 };
