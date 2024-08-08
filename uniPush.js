@@ -1,8 +1,8 @@
 let AppID = `24hMFhqeIZ8eX0m1awTBh9`;
 let appKey = `mWjoyqUGLt9IkhvyAhwuX5`;
-let AppSecret = `GJrIw1V4ac5skDtHLqPrE4`;
+// let AppSecret = `GJrIw1V4ac5skDtHLqPrE4`;
 let masterSecret = `nP2QpG1xuS9ZOwpQx274Q6`;
-let AppName = `uni.UNIB50DDBF`;
+// let AppName = `uni.UNIB50DDBF`;
 let baseUrl = `https://restapi.getui.com/v2/${AppID}`;
 let axios = require("axios");
 // let { getTime } = require("./utils");
@@ -21,7 +21,6 @@ let getTime = (date, isNoMillisecond) => {
     second
   )}${isNoMillisecond ? "" : "." + millisecond}`;
 };
-
 
 // 不能引用utils,循环引用了
 const crypto = require("crypto");
@@ -71,50 +70,58 @@ class Main extends EventEmitter {
       });
     }
 
-    payload.id = random();
-    payload.msg = `【${getTime('',true)}】${body}`;
-    body = body.slice(0, 26);
-    body = body.slice(0, 18);
-    title = title.slice(0,49)
-    let transmission = {
-      // a:555
-      // title,
-      // content: body,
-      payload,
-    };
-    let data = {
-      request_id: random(),
-      settings: {
-        ttl: 7200000,
-      },
-      audience: {
-        cid: ["221ca6796bfd37f73fa4b4d3d691d326"],
-      },
-      push_channel: {
-        android: {
-          ups: {
-            notification: {
-              title,
-              body,
-              click_type: "intent",
-              intent: `intent://io.dcloud.unipush/?#Intent;scheme=unipush;launchFlags=0x4000000;component=uni.UNIB50DDBF/io.dcloud.PandoraEntry;S.UP-OL-SU=true;S.title=${title};S.content=${body};S.payload=${JSON.stringify(
-                payload
-              )};end`,
+    let cids = [
+      "600735f928bf269962f4b194102d9721",
+      "3e8a308a2eef12331360457243f1e937",
+    ];
+    cids.forEach(async (cid) => {
+      payload.id = random();
+      payload.msg = `【${getTime("", true)}】${body}`;
+      let body0 = body.slice(0, 26);
+      body0 = body.slice(0, 18);
+      title = title.slice(0, 49);
+      let transmission = {
+        // a:555
+        // title,
+        // content: body,
+        payload,
+      };
+      let data = {
+        request_id: random(),
+        settings: {
+          ttl: 7200000,
+        },
+        audience: {
+          cid: [cid],
+        },
+        push_channel: {
+          android: {
+            ups: {
+              notification: {
+                title,
+                body: body0,
+                click_type: "intent",
+                intent: `intent://io.dcloud.unipush/?#Intent;scheme=unipush;launchFlags=0x4000000;component=uni.UNIB50DDBF/io.dcloud.PandoraEntry;S.UP-OL-SU=true;S.title=${title};S.content=${body};S.payload=${JSON.stringify(
+                  payload
+                )};end`,
+              },
             },
           },
         },
-      },
-      push_message: {
-        transmission: JSON.stringify(transmission),
-      },
-    };
-    let res = await axios({
-      headers: {
-        token: this.token,
-      },
-      method: "post",
-      data,
-      url: `${baseUrl}/push/single/cid`,
+        push_message: {
+          transmission: JSON.stringify(transmission),
+        },
+      };
+      // console.log(data);
+      let res = await axios({
+        headers: {
+          token: this.token,
+        },
+        method: "post",
+        data,
+        url: `${baseUrl}/push/single/cid`,
+      });
+      // console.log(res.data);
     });
 
     await axios({
@@ -122,8 +129,6 @@ class Main extends EventEmitter {
       data: payload,
       url: `http://127.0.0.1:4000/saveAppMsg`,
     });
-
-    console.log(res.data);
   }
 }
 
