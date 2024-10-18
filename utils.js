@@ -207,9 +207,8 @@ let getDouyaIp = async () => {
       throw new Error('找不到ip')
     }
     let ip = data.data[0].ip + ":" + data.data[0].port;
-    console.log("isDistincet",isDistinct)
-    console.log('提取到的ip',ip)
-    console.count();
+    // console.log('提取到的ip',ip)
+    // console.count();
     return ip;
   };
   let newFn = waitUntilSuccess(getIp, 5, 100);

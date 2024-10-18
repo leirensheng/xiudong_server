@@ -13,7 +13,6 @@ let cmd2 = require("./cmd2");
 const websocket = require("koa-easy-ws");
 const getDynv6Ip = require("../xiudongPupp/getDynv6Ip");
 const eventBus = new eventEmitter();
-const slideLogin = require("./slideLogin.js");
 const fsExtra = require("fs-extra");
 eventEmitter.setMaxListeners(0);
 const child_process = require("child_process");
@@ -552,7 +551,7 @@ router.get("/removeAllAppMsg", async (ctx, next) => {
 
 router.post("/sendAppMsg", async (ctx, next) => {
   let { title, content, payload } = ctx.request.body;
-  console.log("接受到请求发送app", content);
+  // console.log("接受到请求发送app", content);
   await sendAppMsg(title, content, payload);
   ctx.status = 200;
 });
