@@ -22,7 +22,6 @@ let getTime = (date, isNoMillisecond) => {
   )}${isNoMillisecond ? "" : "." + millisecond}`;
 };
 
-
 // 不能引用utils,循环引用了
 const crypto = require("crypto");
 let random = () =>
@@ -72,10 +71,10 @@ class Main extends EventEmitter {
     }
 
     payload.id = random();
-    payload.msg = `【${getTime('',true)}】${body}`;
+    payload.msg = `【${getTime("", true)}】${body}`;
     body = body.slice(0, 26);
     body = body.slice(0, 18);
-    title = title.slice(0,49)
+    title = title.slice(0, 49);
     let transmission = {
       // a:555
       // title,
@@ -88,7 +87,7 @@ class Main extends EventEmitter {
         ttl: 7200000,
       },
       audience: {
-        cid: ["221ca6796bfd37f73fa4b4d3d691d326"],
+        cid: ["79c4b34ac27e1cb6ed900c2a78b7b9ae"],
       },
       push_channel: {
         android: {
@@ -122,8 +121,7 @@ class Main extends EventEmitter {
       data: payload,
       url: `http://127.0.0.1:4000/saveAppMsg`,
     });
-
-    console.log(res.data);
+    // console.log(res.data);
   }
 }
 
